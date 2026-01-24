@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18, 20]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify build output exists
+        run: |
+          if [ ! -f skills/arweave/index.mjs ]; then
+            echo "Error: skills/arweave/index.mjs does not exist"
+            exit 1
+          fi
+          echo "Build output exists"
+
+      - name: Verify skill runs
+        run: node skills/arweave/index.mjs --help
+
+      - name: Check for bare imports
+        run: |
+          echo "Checking for bare imports that should be bundled..."
+          
+          if grep -q "from ['\"]@permaweb/arx['\"]" skills/arweave/index.mjs; then
+            echo "Error: Found bare import for @permaweb/arx"
+            exit 1
+          fi
+          
+          if grep -q "from ['\"]@ar.io/sdk['\"]" skills/arweave/index.mjs; then
+            echo "Error: Found bare import for @ar.io/sdk"
+            exit 1
+          fi
+          
+          if grep -q "from ['\"]@permaweb/aoconnect['\"]" skills/arweave/index.mjs; then
+            echo "Error: Found bare import for @permaweb/aoconnect"
+            exit 1
+          fi
+          
+          echo "No bare imports found - all packages are properly bundled"

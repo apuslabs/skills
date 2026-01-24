@@ -60,16 +60,16 @@ You can also run the CLI directly:
 
 ```sh
 # Upload a file
-node skills/arweave/index.js upload ./file.md --wallet ./wallet.json
+node skills/arweave/index.mjs upload ./file.md --wallet ./wallet.json
 
 # Upload a website
-node skills/arweave/index.js upload-site ./dist --wallet ./wallet.json
+node skills/arweave/index.mjs upload-site ./dist --wallet ./wallet.json
 
 # Attach to ArNS name
-node skills/arweave/index.js attach <txId> myname --wallet ./wallet.json --yes
+node skills/arweave/index.mjs attach <txId> myname --wallet ./wallet.json --yes
 
 # Attach to undername (hello.myname.arweave.net)
-node skills/arweave/index.js attach <txId> hello_myname --wallet ./wallet.json --yes
+node skills/arweave/index.mjs attach <txId> hello_myname --wallet ./wallet.json --yes
 ```
 
 ## CLI Options
