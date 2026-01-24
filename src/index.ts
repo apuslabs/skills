@@ -496,9 +496,9 @@ async function handleAttach(args: ParsedArgs): Promise<void> {
   console.log('');
   console.log('ArNS record updated successfully!');
   if (undername) {
-    console.log(`  ${undername}.${baseName}.ar.io now points to ${txId}`);
+    console.log(`  ${undername}_${baseName}.arweave.net now points to ${txId}`);
   } else {
-    console.log(`  ${baseName}.ar.io now points to ${txId}`);
+    console.log(`  ${baseName}.arweave.net now points to ${txId}`);
   }
 }
 
