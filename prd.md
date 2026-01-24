@@ -33,7 +33,7 @@ Build a small TypeScript CLI wrapper that imports and uses:
 
 Bundle the CLI into a single Node-runnable file placed in:
 
-- `.claude/skills/arweave-skill/arweave-skill.mjs`
+- `.claude/skills/arweave-skill/index.js`
 
 Add the skill instruction file:
 
