@@ -15,6 +15,7 @@ interface ParsedArgs {
   ttl: number;
   yes: boolean;
   help: boolean;
+  force: boolean;
   network: 'mainnet' | 'testnet';
   arioProcess: string | null;
 }
@@ -35,12 +36,24 @@ function parseArgs(args: string[]): ParsedArgs {
     ttl: 3600,
     yes: false,
     help: false,
+    force: false,
     network: 'mainnet',
     arioProcess: null,
   };
 
   const positional: string[] = [];
   let i = 0;
+
+  // Helper to validate that a flag has a value
+  function requireFlagValue(flag: string): string {
+    const nextArg = args[i + 1];
+    if (nextArg === undefined || nextArg.startsWith('--')) {
+      console.error(`Error: ${flag} requires a value`);
+      process.exit(1);
+    }
+    i++; // consume the value
+    return nextArg;
+  }
 
   while (i < args.length) {
     const arg = args[i];
@@ -49,19 +62,23 @@ function parseArgs(args: string[]): ParsedArgs {
       result.help = true;
       i++;
     } else if (arg === '--wallet') {
-      result.wallet = args[++i];
+      result.wallet = requireFlagValue('--wallet');
       i++;
     } else if (arg === '--index') {
-      result.index = args[++i];
+      result.index = requireFlagValue('--index');
       i++;
     } else if (arg === '--ttl') {
-      result.ttl = parseInt(args[++i], 10);
+      const ttlStr = requireFlagValue('--ttl');
+      result.ttl = parseInt(ttlStr, 10);
       i++;
     } else if (arg === '--yes' || arg === '-y') {
       result.yes = true;
       i++;
+    } else if (arg === '--force' || arg === '-f') {
+      result.force = true;
+      i++;
     } else if (arg === '--network') {
-      const val = args[++i];
+      const val = requireFlagValue('--network');
       if (val === 'mainnet' || val === 'testnet') {
         result.network = val;
       } else {
@@ -70,15 +87,22 @@ function parseArgs(args: string[]): ParsedArgs {
       }
       i++;
     } else if (arg === '--ario-process') {
-      result.arioProcess = args[++i];
+      result.arioProcess = requireFlagValue('--ario-process');
       i++;
     } else if (arg.startsWith('--')) {
-      // Unknown flag, skip
+      // Unknown flag - warn but continue
+      console.error(`Warning: Unknown flag '${arg}'. Use --help for usage.`);
       i++;
     } else {
       positional.push(arg);
       i++;
     }
+  }
+
+  // Validate --ttl is a finite positive integer
+  if (!Number.isFinite(result.ttl) || result.ttl <= 0 || !Number.isInteger(result.ttl)) {
+    console.error('Error: --ttl must be a positive integer');
+    process.exit(1);
   }
 
   // First positional is the command
@@ -118,6 +142,7 @@ Options:
   --network <net>       Network: mainnet or testnet (default: mainnet)
   --ario-process <id>   ARIO process ID (overrides --network)
                         Can be: mainnet, testnet, or a process ID
+  --force               Continue upload-site even if index file is missing
   --yes, -y             Skip confirmation prompts
   --help, -h            Show this help message
 
@@ -267,7 +292,7 @@ async function handleUploadSite(args: ParsedArgs): Promise<void> {
     process.exit(1);
   }
 
-  // Auto-detect index file if not specified and index.html exists
+  // Check if index file exists
   let indexFile = args.index;
   const indexPath = path.join(dirPath, indexFile);
   if (!fs.existsSync(indexPath)) {
@@ -276,8 +301,14 @@ async function handleUploadSite(args: ParsedArgs): Promise<void> {
     const found = defaultIndexes.find(f => fs.existsSync(path.join(dirPath, f)));
     if (found) {
       indexFile = found;
+    } else if (args.force) {
+      // --force: warn but continue
+      console.warn(`Warning: Index file '${indexFile}' not found in directory (continuing due to --force)`);
     } else {
-      console.warn(`Warning: Index file '${indexFile}' not found in directory`);
+      // No --force: fail fast
+      console.error(`Error: Index file '${indexFile}' not found in directory`);
+      console.error(`  Use --force to upload anyway, or --index to specify a different index file`);
+      process.exit(1);
     }
   }
 
