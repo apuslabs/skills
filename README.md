@@ -1,62 +1,67 @@
 ```
-    _                                        ____  _    _ _ _ 
-   / \   _ ____      _____  __ ___   _____  / ___|| | _(_) | |
-  / _ \ | '__\ \ /\ / / _ \/ _` \ \ / / _ \ \___ \| |/ / | | |
- / ___ \| |   \ V  V /  __/ (_| |\ V /  __/  ___) |   <| | | |
-/_/   \_\_|    \_/\_/ \___|\__,_| \_/ \___| |____/|_|\_\_|_|_|
+ ____                                     _       ____  _    _ _ _     
+|  _ \ ___ _ __ _ __ ___   __ ___      __| |__   / ___|| | _(_) | |___ 
+| |_) / _ \ '__| '_ ` _ \ / _` \ \ /\ / / '_ \  \___ \| |/ / | | / __|
+|  __/  __/ |  | | | | | | (_| |\ V  V /| |_) |  ___) |   <| | | \__ \
+|_|   \___|_|  |_| |_| |_|\__,_| \_/\_/ |_.__/  |____/|_|\_\_|_|_|___/
 ```
 
-Upload files and websites to permanent storage on Arweave, and manage ArNS domain records.
+A collection of Permaweb CLI skills for [Claude Code](https://claude.ai/code) and [OpenCode](https://opencode.ai).
+
+## Skills
+
+| Skill | Description | Docs |
+|-------|-------------|------|
+| `arweave` | Upload files/sites to Arweave + manage ArNS records | [skills/arweave/SKILL.md](skills/arweave/SKILL.md) |
+| `monitor` | AO Task Monitor client (summaries, alerts, logs) | [skills/monitor/SKILL.md](skills/monitor/SKILL.md) |
 
 ## Installation
 
-Install the skill into your project using the `skills` CLI:
+Install skills into your project using the `skills` CLI:
 
 ```sh
+# Install the Arweave skill
 npx skills add https://github.com/permaweb/skills --skill arweave
+
+# Install the Monitor skill
+npx skills add https://github.com/permaweb/skills --skill monitor
 ```
 
-This will add the skill to your project's `.claude/skills/` or `.opencode/skills/` directory.
-
-## Requirements
-
-- Node.js 18+
-- Internet access
-- Arweave wallet (JWK format)
+This adds the skill to your project's `.claude/skills/` or `.opencode/skills/` directory.
 
 ## Usage with Claude Code
 
-Once installed, simply ask Claude Code to use Arweave:
+Once installed, invoke skills by asking Claude Code naturally:
 
-### Upload a file
+### Arweave
 
 ```
 use arweave to upload ./my-document.md
-```
-
-### Upload a website
-
-```
 use arweave to upload ./dist
-```
-
-### Attach to an ArNS name
-
-```
 use arweave to attach <txId> to myname
 ```
 
-### Attach to an undername
+Claude Code will prompt for your wallet path if not configured.
+
+**Full docs:** [skills/arweave/SKILL.md](skills/arweave/SKILL.md)
+
+### Monitor
 
 ```
-use arweave to attach <txId> to docs_myname
+use monitor to get a summary
+use monitor to check alerts
+use monitor to show logs for ao-token-info
 ```
 
-Claude Code will prompt you for your wallet path if not already configured.
+Requires `AO_MONITOR_KEY` environment variable (see skill docs for setup).
+
+**Full docs:** [skills/monitor/SKILL.md](skills/monitor/SKILL.md)
 
 ## Manual CLI Usage
 
-You can also run the CLI directly:
+You can also run the CLIs directly:
+
+### Arweave
 
 ```sh
 # Upload a file
@@ -67,33 +72,47 @@ node skills/arweave/index.mjs upload-site ./dist --wallet ./wallet.json
 
 # Attach to ArNS name
 node skills/arweave/index.mjs attach <txId> myname --wallet ./wallet.json --yes
-
-# Attach to undername (hello.myname.arweave.net)
-node skills/arweave/index.mjs attach <txId> hello_myname --wallet ./wallet.json --yes
 ```
 
-## CLI Options
+**Full docs:** [skills/arweave/SKILL.md](skills/arweave/SKILL.md)
 
-| Option | Description |
-|--------|-------------|
-| `--wallet <path>` | Path to Arweave wallet keyfile (JWK) |
-| `--index <file>` | Index file for site uploads (default: index.html) |
-| `--ttl <seconds>` | TTL for ArNS records (default: 3600) |
-| `--network <net>` | Network: mainnet or testnet (default: mainnet) |
-| `--ario-process <id>` | ARIO process ID (overrides --network) |
-| `--force` | Continue upload-site even if index file missing |
-| `--yes, -y` | Skip confirmation prompts |
+### Monitor
 
-## Environment Variables
+```sh
+# System summary
+node skills/monitor/index.mjs summary
 
-| Variable | Description |
-|----------|-------------|
-| `ARWEAVE_WALLET` | Path to wallet keyfile (alternative to --wallet) |
+# Check alerts
+node skills/monitor/index.mjs alerts
 
-## ArNS Name Format
+# View logs
+node skills/monitor/index.mjs logs --limit 50
+```
 
-- `myname` - base name (updates `@` record at myname.arweave.net)
-- `sub_myname` - undername `sub` under base `myname` (sub_myname.arweave.net)
+**Full docs:** [skills/monitor/SKILL.md](skills/monitor/SKILL.md)
+
+## Requirements
+
+- Node.js 18+
+- Internet access
+- Arweave wallet (JWK format) for `arweave` skill
+- `AO_MONITOR_KEY` env var for `monitor` skill
+
+## Development
+
+The `arweave` skill requires a build step (bundles dependencies):
+
+```sh
+npm ci
+npm run build
+node skills/arweave/index.mjs --help
+```
+
+The `monitor` skill is dependency-free and runs directly:
+
+```sh
+node skills/monitor/index.mjs --help
+```
 
 ## License
 
