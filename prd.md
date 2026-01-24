@@ -33,11 +33,11 @@ Build a small TypeScript CLI wrapper that imports and uses:
 
 Bundle the CLI into a single Node-runnable file placed in:
 
-- `.claude/skills/arweave-skill/index.js`
+- `skills/arweave/index.js`
 
 Add the skill instruction file:
 
-- `.claude/skills/arweave-skill/SKILL.md`
+- `skills/arweave/SKILL.md`
 
 ## Defaults
 
@@ -141,10 +141,10 @@ The skill doc will instruct the agent to:
 Example invocations:
 
 ```sh
-node .claude/skills/arweave-skill/index.js upload "foo.md" --wallet "<path>"
-node .claude/skills/arweave-skill/index.js upload-site "./mywebsite" --index "index.html" --wallet "<path>"
-node .claude/skills/arweave-skill/index.js attach "<txId>" "hello_rakis" --ttl 3600 --network mainnet --wallet "<path>" --yes
-node .claude/skills/arweave-skill/index.js attach "<txId>" "hello_rakis" --ario-process testnet --wallet "<path>" --yes
+node skills/arweave/index.js upload "foo.md" --wallet "<path>"
+node skills/arweave/index.js upload-site "./mywebsite" --index "index.html" --wallet "<path>"
+node skills/arweave/index.js attach "<txId>" "hello_rakis" --ttl 3600 --network mainnet --wallet "<path>" --yes
+node skills/arweave/index.js attach "<txId>" "hello_rakis" --ario-process testnet --wallet "<path>" --yes
 ```
 
 ## Error Handling
@@ -162,23 +162,23 @@ After implementation:
 
 1. `npm i`
 2. `npm run build`
-3. `node .claude/skills/arweave-skill/index.js --help`
+3. `node skills/arweave/index.js --help`
 
 Verification steps:
 
 1. Mainnet lookup (no write - answer 'n' to confirmation):
    ```sh
-   node .claude/skills/arweave-skill/index.js attach <txId> cyberpunk_rakis-me --network mainnet --wallet <path>
+   node skills/arweave/index.js attach <txId> cyberpunk_rakis-me --network mainnet --wallet <path>
    ```
 
 2. Mainnet write:
    ```sh
-   node .claude/skills/arweave-skill/index.js attach <txId> cyberpunk_rakis-me --network mainnet --yes --wallet <path>
+   node skills/arweave/index.js attach <txId> cyberpunk_rakis-me --network mainnet --yes --wallet <path>
    ```
 
 3. Testnet behavior (should respond quickly, may not find name):
    ```sh
-   node .claude/skills/arweave-skill/index.js attach <txId> cyberpunk_rakis-me --network testnet --yes --wallet <path>
+   node skills/arweave/index.js attach <txId> cyberpunk_rakis-me --network testnet --yes --wallet <path>
    ```
 
 ---
@@ -251,13 +251,13 @@ Based on research of `permaweb/permaweb-deploy` repository patterns:
 ### Step 5: Update UX/Help/Docs
 
 - Update `showHelp()` with new flags
-- Update `.claude/skills/arweave-skill/SKILL.md` examples
+- Update `skills/arweave/SKILL.md` examples
 - Update confirmation prompt: "This will update a <mainnet|testnet> ArNS record..."
 
 ### Step 6: Verification
 
 1. Rebuild: `npm run build`
-2. Smoke test: `node .claude/skills/arweave-skill/index.js --help`
+2. Smoke test: `node skills/arweave/index.js --help`
 3. Mainnet read check (answer 'n'): test lookup works
 4. Mainnet write: full attach with `--yes`
 5. Testnet behavior: should respond quickly

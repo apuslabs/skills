@@ -2,7 +2,7 @@
   "name": "arweave-skill",
   "type": "module",
   "scripts": {
-    "build": "tsup src/index.ts --format esm --out-dir .claude/skills/arweave-skill --no-splitting --minify"
+    "build": "tsup src/index.ts --format esm --out-dir skills/arweave --no-splitting --minify"
   },
   "dependencies": {
     "@ar.io/sdk": "^3.22.1",

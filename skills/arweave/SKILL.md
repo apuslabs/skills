@@ -1,3 +1,12 @@
+---
+name: arweave
+description: Upload files and websites to permanent storage on Arweave (permaweb), and manage ArNS domain records. Use when the user wants to publish content to Arweave, deploy a static site to the permaweb, or attach a transaction to an ArNS name (ar.io).
+compatibility: Requires Node.js 18+, internet access, and an Arweave wallet (JWK format)
+metadata:
+  author: rakis
+  version: "0.0.1"
+---
+
 # Arweave Upload & ArNS Skill
 
 Upload files and websites to permanent storage on Arweave, and manage ArNS (Arweave Name System) domain records.
@@ -23,13 +32,13 @@ Upload files and websites to permanent storage on Arweave, and manage ArNS (Arwe
 ### Upload a Single File
 
 ```sh
-node .claude/skills/arweave-skill/index.js upload "<file>" --wallet "<path/to/wallet.json>"
+node skills/arweave/index.js upload "<file>" --wallet "<path/to/wallet.json>"
 ```
 
 ### Upload a Website/Directory
 
 ```sh
-node .claude/skills/arweave-skill/index.js upload-site "<directory>" --index "index.html" --wallet "<path/to/wallet.json>"
+node skills/arweave/index.js upload-site "<directory>" --index "index.html" --wallet "<path/to/wallet.json>"
 ```
 
 - `--index` specifies the default file served at the root (defaults to `index.html`)
@@ -38,7 +47,7 @@ node .claude/skills/arweave-skill/index.js upload-site "<directory>" --index "in
 ### Attach Transaction to ArNS Name
 
 ```sh
-node .claude/skills/arweave-skill/index.js attach "<txId>" "<name>" --wallet "<path/to/wallet.json>" --yes
+node skills/arweave/index.js attach "<txId>" "<name>" --wallet "<path/to/wallet.json>" --yes
 ```
 
 **Options:**
@@ -65,13 +74,13 @@ By default, the skill uses **mainnet**. You can specify a different network:
 
 ```sh
 # Use mainnet (default)
-node .claude/skills/arweave-skill/index.js attach "<txId>" "<name>" --network mainnet --wallet "..." --yes
+node skills/arweave/index.js attach "<txId>" "<name>" --network mainnet --wallet "..." --yes
 
 # Use testnet
-node .claude/skills/arweave-skill/index.js attach "<txId>" "<name>" --network testnet --wallet "..." --yes
+node skills/arweave/index.js attach "<txId>" "<name>" --network testnet --wallet "..." --yes
 
 # Use specific ARIO process ID (overrides --network)
-node .claude/skills/arweave-skill/index.js attach "<txId>" "<name>" --ario-process "<processId>" --wallet "..." --yes
+node skills/arweave/index.js attach "<txId>" "<name>" --ario-process "<processId>" --wallet "..." --yes
 ```
 
 ## Output Handling
@@ -94,17 +103,17 @@ For site uploads, clarify that the txId represents the manifest transaction serv
 
 ```sh
 # Upload a single markdown file
-node .claude/skills/arweave-skill/index.js upload "foo.md" --wallet "/path/to/wallet.json"
+node skills/arweave/index.js upload "foo.md" --wallet "/path/to/wallet.json"
 
 # Upload a website directory
-node .claude/skills/arweave-skill/index.js upload-site "./mywebsite" --index "index.html" --wallet "/path/to/wallet.json"
+node skills/arweave/index.js upload-site "./mywebsite" --index "index.html" --wallet "/path/to/wallet.json"
 
 # Attach a transaction to an ArNS undername (mainnet)
-node .claude/skills/arweave-skill/index.js attach "<txId>" "hello_rakis" --ttl 3600 --network mainnet --wallet "/path/to/wallet.json" --yes
+node skills/arweave/index.js attach "<txId>" "hello_rakis" --ttl 3600 --network mainnet --wallet "/path/to/wallet.json" --yes
 
 # Attach to testnet
-node .claude/skills/arweave-skill/index.js attach "<txId>" "hello_rakis" --network testnet --wallet "/path/to/wallet.json" --yes
+node skills/arweave/index.js attach "<txId>" "hello_rakis" --network testnet --wallet "/path/to/wallet.json" --yes
 
 # Attach using specific ARIO process
-node .claude/skills/arweave-skill/index.js attach "<txId>" "hello_rakis" --ario-process testnet --wallet "/path/to/wallet.json" --yes
+node skills/arweave/index.js attach "<txId>" "hello_rakis" --ario-process testnet --wallet "/path/to/wallet.json" --yes
 ```
