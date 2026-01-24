@@ -1,5 +1,5 @@
 ---
-name: ao-monitor
+name: monitor
 description: Node.js CLI for interacting with the AO Task Monitor API - get system health, alerts, logs, and task metrics for AO processes
 license: MIT
 compatibility: node
