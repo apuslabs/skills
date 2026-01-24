@@ -1,0 +1,6 @@
+node_modules/
+dist/
+test-website/
+test-website-manifest.json
+test-website-manifest.csv
+test-website-id.txt
