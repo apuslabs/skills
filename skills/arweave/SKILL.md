@@ -18,6 +18,7 @@ Upload files and websites to permanent storage on Arweave, and manage ArNS (Arwe
 | "use arweave to upload `<file>`" | `upload` |
 | "use arweave to upload `<dir>`" | `upload-site` |
 | "use arweave to attach `<txId>` to `<name>`" | `attach` |
+| "use arweave to query transactions" | `query` |
 
 ## Wallet Handling
 
@@ -98,6 +99,104 @@ Uploaded successfully!
 ```
 
 For site uploads, clarify that the txId represents the manifest transaction serving the entire site.
+
+### Query Transactions
+
+```sh
+node skills/arweave/index.mjs query [options]
+```
+
+Search and filter Arweave transactions using the GraphQL endpoint.
+
+**Options:**
+
+- `--tag <name:value>` - Filter by tag (can specify multiple, uses AND logic)
+- `--owner <address>` - Filter by owner wallet address
+- `--recipient <address>` - Filter by recipient wallet address
+- `--ids <comma-separated>` - Query specific transaction IDs
+- `--block-min <height>` - Minimum block height
+- `--block-max <height>` - Maximum block height
+- `--limit <number>` - Max results to return (default: 10, set to 0 for all)
+- `--sort <HEIGHT_DESC|HEIGHT_ASC>` - Sort order (default: HEIGHT_DESC)
+
+**Tag Syntax:**
+
+Tags use the format `name:value`. Multiple `--tag` flags apply AND logic (all conditions must match).
+
+```sh
+# Single tag
+--tag "Content-Type:text/html"
+
+# Multiple tags (both must match)
+--tag "Content-Type:text/html" --tag "User-Agent:ArweaveAutoDPL/0.1"
+```
+
+**Pagination:**
+
+- Default limit is 10 transactions
+- Use `--limit 0` to fetch all matching results
+- Large queries may take time; consider narrowing filters for faster results
+
+**Examples:**
+
+```sh
+# Query last 10 recent transactions
+node skills/arweave/index.mjs query --sort HEIGHT_DESC
+
+# Find all HTML content (fetch all results)
+node skills/arweave/index.mjs query --tag "Content-Type:text/html" --limit 0
+
+# Query by owner with custom limit
+node skills/arweave/index.mjs query --owner "M6w588ZkR8SVFdPkNXdBy4sqbMN0Y3F8ZJUWm2WCm8M" --limit 50
+
+# Multiple tags (AND logic: both conditions must match)
+node skills/arweave/index.mjs query \
+  --tag "Content-Type:text/html" \
+  --tag "User-Agent:ArweaveAutoDPL/0.1" \
+  --limit 20
+
+# Query block height range
+node skills/arweave/index.mjs query --block-min 587540 --block-max 587550 --limit 100
+
+# Combine filters: HTML in specific block range, oldest first
+node skills/arweave/index.mjs query \
+  --tag "Content-Type:text/html" \
+  --block-min 587540 \
+  --block-max 587550 \
+  --sort HEIGHT_ASC
+
+# Query specific transaction IDs
+node skills/arweave/index.mjs query --ids "abc123,def456,ghi789"
+
+# Find transactions from specific recipient
+node skills/arweave/index.mjs query --recipient "M6w588ZkR8SVFdPkNXdBy4sqbMN0Y3F8ZJUWm2WCm8M" --limit 25
+```
+
+### GraphQL Endpoint Fallback
+
+The `query` command automatically tries multiple GraphQL endpoints for reliability:
+
+1. `https://arweave.net/graphql` (primary - official gateway)
+2. `https://arweave-search.goldsky.com/graphql` (fallback - Goldsky indexer)
+3. `https://g8way.io/graphql` (fallback - alternative gateway)
+
+This happens **transparently** - the command uses whichever endpoint responds first. You don't need to do anything; it just works.
+
+#### Custom Endpoint Override
+
+To use a specific GraphQL endpoint (useful for testing or private gateways):
+
+```sh
+# Use a custom endpoint
+node skills/arweave/index.mjs query --tag "Content-Type:text/html" --limit 5 \
+  --graphql-endpoint "https://custom-gateway.com/graphql"
+
+# Force use of a specific public endpoint
+node skills/arweave/index.mjs query --owner <address> --limit 10 \
+  --graphql-endpoint "https://g8way.io/graphql"
+```
+
+**Note**: When `--graphql-endpoint` is provided, the automatic fallback is disabled. Only the specified endpoint will be tried.
 
 ## Example Invocations
 

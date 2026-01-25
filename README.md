@@ -70,7 +70,18 @@ node skills/arweave/index.mjs upload-site ./dist --wallet ./wallet.json
 
 # Attach to ArNS name
 node skills/arweave/index.mjs attach <txId> myname --wallet ./wallet.json --yes
+
+# Query transactions (with automatic endpoint fallback for reliability)
+node skills/arweave/index.mjs query --tag "Content-Type:text/html" --limit 10
+node skills/arweave/index.mjs query --owner <address> --limit 50
+node skills/arweave/index.mjs query --block-min 587540 --block-max 587550
+
+# Use a custom GraphQL endpoint
+node skills/arweave/index.mjs query --tag "App-Name:MyApp" --limit 10 \
+  --graphql-endpoint "https://custom-gateway.com/graphql"
 ```
+
+The query command supports automatic endpoint fallback for reliability. If the primary Arweave gateway is unavailable, it will automatically try alternative endpoints.
 
 **Full docs:** [skills/arweave/SKILL.md](skills/arweave/SKILL.md)
 
