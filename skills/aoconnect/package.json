@@ -1,0 +1,32 @@
+{
+  "name": "aoconnect",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "CLI for interacting with AO processes using @permaweb/aoconnect",
+  "main": "index.mjs",
+  "keywords": ["ao", "arweave", "permaweb", "blockchain"],
+  "author": "rakis",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@permaweb/aoconnect": "^0.0.93"
+  },
+  "scripts": {
+    "test": "node index.mjs --help",
+    "dev": "node index.mjs"
+  },
+  "files": [
+    "index.mjs",
+    "SKILL.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/permaweb/skills.git"
+  },
+  "bugs": {
+    "url": "https://github.com/permaweb/skills/issues"
+  },
+  "homepage": "https://github.com/permaweb/skills#readme"
+}
