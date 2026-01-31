@@ -1,0 +1,33 @@
+{
+  "name": "code-review",
+  "version": "1.0.0",
+  "description": "Automated code reviews using OpenCode with kimi-k2 model",
+  "main": "index.mjs",
+  "type": "module",
+  "bin": {
+    "code-review": "./index.mjs"
+  },
+  "scripts": {
+    "review": "node index.mjs review",
+    "generate-workflow": "node index.mjs generate-workflow",
+    "post": "node index.mjs post",
+    "test": "node index.mjs review --repo=test/test --pr=1"
+  },
+  "keywords": [
+    "code-review",
+    "ai",
+    "opencode",
+    "kimi-k2",
+    "review",
+    "pull-request",
+    "github-actions"
+  ],
+  "author": "ribby 🐟",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^11.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
