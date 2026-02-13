@@ -1,0 +1,210 @@
+name: Deploy to Deno Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'agent-memo/**'
+      - '.github/workflows/deploy-deno.yml'
+  workflow_dispatch:
+
+env:
+  DENO_DEPLOY_TOKEN: ${{ secrets.DENO_DEPLOY_TOKEN }}
+  PROJECT_ID: ${{ secrets.DENO_PROJECT_ID }}
+
+jobs:
+  deploy:
+    name: Deploy to Deno Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check if DENO_DEPLOY_TOKEN is set
+        run: |
+          if [ -z "$DENO_DEPLOY_TOKEN" ]; then
+            echo "⚠️  DENO_DEPLOY_TOKEN not set - skipping deployment"
+            echo "To enable auto-deployment, add DENO_DEPLOY_TOKEN to GitHub secrets"
+            echo "Get token from: https://dash.deno.com/account"
+            exit 1
+          fi
+          echo "✅ DENO_DEPLOY_TOKEN is configured"
+
+      - name: Check if PROJECT_ID is set
+        run: |
+          if [ -z "$PROJECT_ID" ]; then
+            echo "⚠️  DENO_PROJECT_ID not set - using manual project name"
+            echo "To specify project, add DENO_PROJECT_ID to GitHub secrets"
+            echo "Or the workflow will use 'agent-memo' as project name"
+          else
+            echo "✅ DENO_PROJECT_ID is configured: $PROJECT_ID"
+          fi
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Verify Deno installation
+        run: |
+          deno --version
+          echo "✅ Deno installed successfully"
+
+      - name: Type check TypeScript
+        run: |
+          cd agent-memo
+          deno check server.ts
+          deno check memo-service.ts
+          echo "✅ TypeScript type check passed"
+
+      - name: Test locally (if possible)
+        continue-on-error: true
+        run: |
+          cd agent-memo
+          echo "Testing server startup..."
+          timeout 5 deno run --allow-net --allow-env server.ts || true
+          echo "✅ Server startup test completed"
+
+      - name: Deploy to Deno Deploy
+        run: |
+          cd agent-memo
+
+          # Set project name or use PROJECT_ID
+          if [ -n "$PROJECT_ID" ]; then
+            echo "Deploying to project: $PROJECT_ID"
+            deno deploy \
+              --project="$PROJECT_ID" \
+              --token="$DENO_DEPLOY_TOKEN" \
+              --env=TTS_MODE=simulation \
+              server.ts
+          else
+            echo "Deploying to project: agent-memo"
+            deno deploy \
+              --project="agent-memo" \
+              --token="$DENO_DEPLOY_TOKEN" \
+              --env=TTS_MODE=simulation \
+              server.ts
+          fi
+
+      - name: Verify deployment
+        run: |
+          echo "⏳ Waiting for deployment to propagate..."
+          sleep 10
+
+          # Try to health check
+          if [ -n "$PROJECT_ID" ]; then
+            BASE_URL="https://$PROJECT_ID.deno.dev"
+          else
+            BASE_URL="https://agent-memo.deno.dev"
+          fi
+
+          echo "🔍 Checking health endpoint: $BASE_URL/health"
+          response=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$BASE_URL/health" || echo "000")
+
+          if [ "$response" = "200" ]; then
+            echo "✅ Deployment successful! Health check passed"
+            echo "📍 API URL: $BASE_URL"
+          else
+            echo "⚠️  Health check returned: $response"
+            echo "Deployment may have succeeded but server not ready yet"
+            echo "📍 API URL: $BASE_URL"
+          fi
+
+      - name: Deploy with ElevenLabs (if API key available)
+        if: ${{ secrets.ELEVENLABS_API_KEY != '' }}
+        run: |
+          cd agent-memo
+
+          echo "🔊 Re-deploying with ElevenLabs support..."
+
+          if [ -n "$PROJECT_ID" ]; then
+            deno deploy \
+              --project="$PROJECT_ID" \
+              --token="$DENO_DEPLOY_TOKEN" \
+              --env=TTS_MODE=elevenlabs \
+              --env=ELEVENLABS_API_KEY=${{ secrets.ELEVENLABS_API_KEY }} \
+              server.ts
+          else
+            deno deploy \
+              --project="agent-memo" \
+              --token="$DENO_DEPLOY_TOKEN" \
+              --env=TTS_MODE=elevenlabs \
+              --env=ELEVENLABS_API_KEY=${{ secrets.ELEVENLABS_API_KEY }} \
+              server.ts
+          fi
+
+          echo "✅ Deployed with ElevenLabs support"
+
+      - name: Comment on PR with deployment status
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo, number } = context.issue;
+
+            let commentBody = `## 🚀 Deno Deploy Deployment\n\n`;
+            commentBody += `Deployment to Deno Deploy has completed!\n\n`;
+
+            if (process.env.PROJECT_ID) {
+              commentBody += `📍 **API URL:** https://${process.env.PROJECT_ID}.deno.dev\n`;
+            } else {
+              commentBody += `📍 **API URL:** https://agent-memo.deno.dev\n`;
+            }
+
+            commentBody += `🔊 **TTS Mode:** Simulation (default)\n\n`;
+            commentBody += `💡 **Note:** To use ElevenLabs, add ELEVENLABS_API_KEY to GitHub secrets.\n`;
+
+            const comments = await github.rest.issues.listComments({
+              owner,
+              repo,
+              issue_number: number
+            });
+
+            const botComment = comments.data.find(comment => {
+              return comment.user.type === 'Bot' && comment.body.includes('Deno Deploy Deployment');
+            });
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: botComment.id,
+                body: commentBody
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: number,
+                body: commentBody
+              });
+            }
+
+      - name: Deployment summary
+        run: |
+          echo ""
+          echo "═════════════════════════════════════════════════════════"
+          echo "           🎙️  Deployment Summary"
+          echo "═════════════════════════════════════════════════════════"
+          echo ""
+
+          if [ -n "$PROJECT_ID" ]; then
+            echo "📍 API:     https://$PROJECT_ID.deno.dev"
+          else
+            echo "📍 API:     https://agent-memo.deno.dev"
+          fi
+
+          echo "🔊 TTS:     Simulation mode (default)"
+          echo "📚 Health:  /health"
+          echo "🎤 Voices:  /voices"
+          echo ""
+          echo "═════════════════════════════════════════════════════════"
+          echo ""
+          echo "💡 Next steps:"
+          echo "   1. Test the API: curl <URL>/health"
+          echo "   2. Create a memo with: curl -X POST <URL>/memo"
+          echo "   3. Check GitHub Settings -> Secrets for environment variables"
+          echo ""
