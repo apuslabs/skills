@@ -114,9 +114,15 @@ jobs:
           fi
 
       - name: Deploy with ElevenLabs (if API key available)
-        if: ${{ secrets.ELEVENLABS_API_KEY != '' }}
         run: |
           cd agent-memo
+
+          # Check if ELEVENLABS_API_KEY secret is set
+          if [ -z "${{ secrets.ELEVENLABS_API_KEY }}" ]; then
+            echo "⚠️  ELEVENLABS_API_KEY not set - skipping ElevenLabs deployment"
+            echo "💡 To enable ElevenLabs, add ELEVENLABS_API_KEY to GitHub Secrets"
+            exit 0
+          fi
 
           echo "🔊 Re-deploying with ElevenLabs support..."
 
