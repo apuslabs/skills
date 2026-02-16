@@ -104,7 +104,7 @@
       "id": "step-4",
       "title": "Create Scout Atoms schema layer",
       "description": "Build the integration between json-render component props and Scout atom schemas",
-      "status": "pending",
+      "status": "completed",
       "successCriteria": [
         "Type-safe schema definitions (TypeScript types from atom schemas)",
         "Schema-to-catalog mapping documented",
@@ -112,8 +112,8 @@
         "At least 2 atom types working (e.g., Contact, Task)"
       ],
       "dependencies": ["step-3"],
-      "agent": null,
-      "notes": ""
+      "agent": "subagent:14b51260-62da-4aca-b149-aa7dba45bda6",
+      "notes": "Created src/schemas/index.ts with TypeScript type definitions for ContactAtom and TaskAtom. Added ContactCard and TaskItem components to catalog-components.tsx with full CSS styling. Extended catalog.ts with Zod schemas for the new components. Created src/services/scout.ts with SSE streaming support for Scout Atoms API (handles atom, cache_complete, done events). Demo data displays both in JSON-Render output and direct component rendering. Build produces single 309KB index.html. Schema-to-catalog mapping documented in code comments."
     },
     {
       "id": "step-5",
@@ -149,7 +149,7 @@
       "id": "step-7",
       "title": "End-to-end demo deployment",
       "description": "Deploy a complete demo SPA to onhyper.io using the skill",
-      "status": "pending",
+      "status": "completed",
       "successCriteria": [
         "Demo app created (e.g., task list or contacts dashboard)",
         "Successfully built to single HTML",
@@ -157,8 +157,22 @@
         "Live URL working with Scout backend integration"
       ],
       "dependencies": ["step-6"],
-      "agent": null,
-      "notes": ""
+      "agent": "subagent:ed16ec2e-156f-49b7-b159-eaf6524c80bd",
+      "notes": "Successfully deployed to https://onhyper.io/a/spa-builder-demo-5929fd12. App ID: 8f365571-b908-4475-97fe-78d420afff76. Scout API secret stored server-side. Build: 310KB single HTML (94KB gzipped). Account: spa-builder-demo@example.com (FREE tier).",
+      "findings": {
+        "liveUrl": "https://onhyper.io/a/spa-builder-demo-5929fd12",
+        "appId": "8f365571-b908-4475-97fe-78d420afff76",
+        "slug": "spa-builder-demo-5929fd12",
+        "secretId": "fa1410bc-855c-45e9-a4c9-79189b5052b9",
+        "buildSize": "310KB (94KB gzipped)",
+        "accountEmail": "spa-builder-demo@example.com",
+        "observations": [
+          "onhyper.io appends unique suffix to slugs for uniqueness",
+          "Publish endpoint returned 404 but apps are auto-published on creation",
+          "No console errors - JavaScript running successfully",
+          "Free tier: 100 requests/day, 3 apps max"
+        ]
+      }
     }
   ]
 }
