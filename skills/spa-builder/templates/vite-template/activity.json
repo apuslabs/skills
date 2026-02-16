@@ -1,0 +1,68 @@
+{
+  "project": "spa-builder-template",
+  "description": "Vite + React + TypeScript template for Scout Atoms SPA",
+  "steps": {
+    "step-1": {
+      "title": "Research onhyper.io proxy endpoints and integration",
+      "status": "complete",
+      "completedAt": "2026-02-15T19:30:00-05:00",
+      "notes": [
+        "onhyper proxy endpoint: /proxy/scout-atoms/*",
+        "Required header: X-App-Slug: <app-slug>",
+        "Store Scout API key as secret via /api/secrets with name 'scout-atoms'",
+        "onhyper.injects stored key and forwards to Scout"
+      ]
+    },
+    "step-2": {
+      "title": "Create component catalog with mapping layer",
+      "status": "complete",
+      "completedAt": "2026-02-15T19:45:00-05:00"
+    },
+    "step-3": {
+      "title": "Implement SSE parser and Scout API service",
+      "status": "complete",
+      "completedAt": "2026-02-15T20:00:00-05:00"
+    },
+    "step-4": {
+      "title": "Build atom renderer with component selection",
+      "status": "complete",
+      "completedAt": "2026-02-15T20:00:00-05:00"
+    },
+    "step-5": {
+      "title": "Build proxy layer for onhyper endpoints",
+      "status": "complete",
+      "completedAt": "2026-02-15T20:10:00-05:00",
+      "files": [
+        "src/services/proxy.ts",
+        "src/services/scout.ts (updated)",
+        ".env.example"
+      ],
+      "notes": [
+        "Created proxy.ts with configurable PROXY_BASE",
+        "setAppSlug() function for production header",
+        "getProxyConfig() returns correct config for dev vs prod",
+        "Updated scout.ts to use proxy layer",
+        "No hardcoded API keys in production build",
+        "Dev mode supports direct API key via VITE_SCOUT_API_KEY"
+      ]
+    },
+    "step-6": {
+      "title": "Create OpenClaw skill package",
+      "status": "complete",
+      "completedAt": "2026-02-15T20:15:00-05:00",
+      "files": [
+        "skills/spa-builder/SKILL.md",
+        "skills/spa-builder/bin/spa-builder",
+        "skills/spa-builder/templates/vite-template/"
+      ],
+      "notes": [
+        "Created skill directory at ~/.openclaw/workspace/skills/spa-builder/",
+        "SKILL.md with full documentation of stack and commands",
+        "CLI script for create/add/build/deploy commands",
+        "Template copied to templates/vite-template/",
+        "Documented onhyper deployment workflow (auth/create/secret/publish)",
+        "Shell script wrapper for all CLI commands"
+      ]
+    }
+  }
+}

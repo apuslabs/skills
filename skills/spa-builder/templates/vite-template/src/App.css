@@ -1,0 +1,437 @@
+.app {
+  text-align: center;
+  padding: 2rem;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+h1 {
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  color: #333;
+}
+
+.demo-container {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* Card component styles */
+.jr-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: left;
+}
+
+.jr-card-title {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  color: #333;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.75rem;
+}
+
+.jr-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Metric component styles */
+.jr-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.jr-metric-label {
+  font-size: 0.875rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.jr-metric-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #10b981;
+}
+
+/* Button component styles */
+.jr-button {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.jr-button:hover {
+  background: #2563eb;
+}
+
+.jr-button:active {
+  background: #1d4ed8;
+}
+
+/* ============================================================================
+   APP LAYOUT
+   ============================================================================ */
+
+.app-header {
+  margin-bottom: 2rem;
+}
+
+.app-header h1 {
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  color: #666;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.refresh-btn {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: #059669;
+}
+
+.refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.api-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.loading-indicator {
+  color: #3b82f6;
+  animation: spin 1s linear infinite;
+}
+
+.error-indicator {
+  color: #ef4444;
+}
+
+@keyframes spin {
+  from { opacity: 1; }
+  to { opacity: 0.5; }
+}
+
+.demo-container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.render-section,
+.direct-section {
+  margin-bottom: 2rem;
+}
+
+.render-section h2,
+.direct-section h2 {
+  text-align: left;
+  font-size: 1.25rem;
+  color: #333;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #3b82f6;
+  padding-bottom: 0.5rem;
+}
+
+.render-output {
+  text-align: left;
+}
+
+.section {
+  margin-bottom: 1.5rem;
+}
+
+.section h3 {
+  text-align: left;
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 0.75rem;
+}
+
+/* ============================================================================
+   CONTACT CARD COMPONENT
+   ============================================================================ */
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.jr-contact-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: left;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s;
+}
+
+.jr-contact-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.jr-contact-header {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.jr-contact-avatar {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.jr-contact-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.jr-contact-initials {
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.jr-contact-status {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+.jr-contact-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.jr-contact-name {
+  margin: 0;
+  font-size: 1rem;
+  color: #111827;
+  font-weight: 600;
+}
+
+.jr-contact-email {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-decoration: none;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jr-contact-email:hover {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+.jr-contact-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.jr-contact-company,
+.jr-contact-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.jr-detail-label {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.jr-detail-value {
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.jr-status-select {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+}
+
+/* ============================================================================
+   TASK ITEM COMPONENT
+   ============================================================================ */
+
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.jr-task-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  text-align: left;
+  transition: all 0.2s;
+}
+
+.jr-task-item:hover {
+  border-color: #d1d5db;
+  background: #f9fafb;
+}
+
+.jr-task-completed {
+  opacity: 0.6;
+  background: #f9fafb;
+}
+
+.jr-task-completed .jr-task-title {
+  text-decoration: line-through;
+  color: #9ca3af;
+}
+
+.jr-task-checkbox {
+  padding-top: 0.125rem;
+}
+
+.jr-task-checkbox input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.jr-task-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.jr-task-title {
+  font-size: 0.9375rem;
+  color: #111827;
+  margin-bottom: 0.375rem;
+}
+
+.jr-task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.jr-task-priority {
+  font-size: 0.6875rem;
+  color: white;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.jr-task-due {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.jr-task-assignee {
+  font-size: 0.75rem;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.jr-assignee-icon {
+  font-size: 0.875rem;
+}
+
+/* ============================================================================
+   RAW DATA DISPLAY
+   ============================================================================ */
+
+.raw-data {
+  text-align: left;
+  background: #f8f9fa;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.raw-data summary {
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #6b7280;
+  user-select: none;
+}
+
+.raw-data summary:hover {
+  color: #374151;
+}
+
+.raw-data pre {
+  margin: 0.75rem 0 0 0;
+  font-size: 0.75rem;
+  overflow-x: auto;
+  background: #1f2937;
+  color: #10b981;
+  padding: 0.75rem;
+  border-radius: 4px;
+}
