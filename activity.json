@@ -89,7 +89,7 @@
       "id": "step-3",
       "title": "Integrate json-render into Vite template",
       "description": "Add @json-render/core and @json-render/react packages, create a basic catalog with 3-5 components",
-      "status": "pending",
+      "status": "completed",
       "successCriteria": [
         "json-render packages installed and configured",
         "Component catalog defined (Card, Metric, Button minimum)",
@@ -97,8 +97,8 @@
         "Streaming support verified (SpecStream)"
       ],
       "dependencies": ["step-2"],
-      "agent": null,
-      "notes": ""
+      "agent": "subagent:30df782d-b26b-47c7-9de9-bdf69b978bbc",
+      "notes": "Installed @json-render/core@0.6.1 and @json-render/react@0.6.1. Created Zod-based catalog with Card, Metric, Button components. Used defineRegistry + Renderer pattern. Test spec renders correctly. Build produces 297KB index.html (90KB gzipped). SpecStream support is available via useUIStream hook."
     },
     {
       "id": "step-4",
