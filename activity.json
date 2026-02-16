@@ -1,0 +1,164 @@
+{
+  "project": "SPA Builder Skill",
+  "description": "Create an OpenClaw skill that combines vercel-labs/json-render + scoutos/atoms + onhyper.io to generate full SPAs",
+  "created": "2026-02-15T19:00:00-05:00",
+  "steps": [
+    {
+      "id": "step-1",
+      "title": "Research onhyper.io deployment API",
+      "description": "Understand how to deploy to onhyper.io - API endpoints, auth, file upload process, proxy configuration",
+      "status": "completed",
+      "successCriteria": [
+        "Documented deployment API endpoints",
+        "Understood auth mechanism (API key flow)",
+        "Identified proxy configuration for Scout API routing",
+        "Found or confirmed single HTML deployment support"
+      ],
+      "dependencies": [],
+      "agent": null,
+      "notes": "",
+      "findings": {
+        "baseUrl": "https://onhyper.io",
+        "authentication": {
+          "mechanism": "JWT Bearer Token",
+          "storage": "localStorage as 'token'",
+          "header": "Authorization: Bearer <session_token>",
+          "endpoints": {
+            "signup": "POST /api/auth/signup - {email, password, name}",
+            "login": "POST /api/auth/login - {email, password} → returns {token, user}",
+            "me": "GET /api/auth/me - Returns current user info"
+          }
+        },
+        "apps": {
+          "endpoints": {
+            "list": "GET /api/apps - List user's apps",
+            "create": "POST /api/apps - {name, slug, description, html, css, js}",
+            "update": "PUT /api/apps/:id - Update app content",
+            "delete": "DELETE /api/apps/:id - Delete app",
+            "publish": "POST /api/apps/:id/publish - Publish app live"
+          },
+          "deploymentModel": "Single HTML/CSS/JS bundle stored server-side",
+          "appUrl": "https://onhyper.io/a/{slug}",
+          "fields": ["name", "slug (unique, lowercase alphanumeric with dashes)", "description", "html", "css", "js"]
+        },
+        "secrets": {
+          "endpoints": {
+            "list": "GET /api/secrets - List stored API keys (preview only)",
+            "create": "POST /api/secrets - {name/provider, key/value}",
+            "delete": "DELETE /api/secrets/:name"
+          },
+          "encryption": "AES-256-GCM server-side encryption",
+          "supportedProviders": ["openai", "anthropic", "openrouter", "scout-atoms", "ollama"]
+        },
+        "proxy": {
+          "baseHeader": "X-App-Slug: <your-app-slug>",
+          "endpoints": {
+            "openai": "/proxy/openai/* → api.openai.com",
+            "anthropic": "/proxy/anthropic/* → api.anthropic.com",
+            "openrouter": "/proxy/openrouter/* → openrouter.ai/api/v1",
+            "scout-atoms": "/proxy/scout-atoms/* → ScoutOS Agents/Drive",
+            "ollama": "/proxy/ollama/* → Ollama local LLM"
+          },
+          "routingNotes": "Include X-App-Slug header for routing and rate limiting"
+        },
+        "rateLimits": {
+          "free": "100 requests/day, 3 apps",
+          "pro": "$99/mo, 10 apps, enhanced limits"
+        },
+        "singleHTMLSupport": true,
+        "notesForScoutIntegration": "Use /proxy/scout-atoms/* endpoint to route Scout OS API calls through onhyper. Store Scout API key as 'scout-atoms' secret. Apps can then call Scout without exposing keys client-side."
+      }
+    },
+    {
+      "id": "step-2",
+      "title": "Create Vite React template with single HTML output",
+      "description": "Set up a minimal Vite + React + TypeScript project that builds to a single inlined HTML file",
+      "status": "completed",
+      "path": "~/.openclaw/workspace/spa-builder-template/",
+      "successCriteria": [
+        "Vite project scaffolded with React + TypeScript",
+        "Vite config produces single index.html with all assets inlined",
+        "Build output verified: dist/index.html only (no separate JS/CSS files)",
+        "Dev server works for local testing"
+      ],
+      "dependencies": [],
+      "agent": null,
+      "notes": "Used vite-plugin-singlefile for inlining. Build outputs single 194KB index.html with all CSS/JS inlined. Dev server tested on port 5173."
+    },
+    {
+      "id": "step-3",
+      "title": "Integrate json-render into Vite template",
+      "description": "Add @json-render/core and @json-render/react packages, create a basic catalog with 3-5 components",
+      "status": "pending",
+      "successCriteria": [
+        "json-render packages installed and configured",
+        "Component catalog defined (Card, Metric, Button minimum)",
+        "React Renderer working with test spec",
+        "Streaming support verified (SpecStream)"
+      ],
+      "dependencies": ["step-2"],
+      "agent": null,
+      "notes": ""
+    },
+    {
+      "id": "step-4",
+      "title": "Create Scout Atoms schema layer",
+      "description": "Build the integration between json-render component props and Scout atom schemas",
+      "status": "pending",
+      "successCriteria": [
+        "Type-safe schema definitions (TypeScript types from atom schemas)",
+        "Schema-to-catalog mapping documented",
+        "Test with demo12 Scout API key",
+        "At least 2 atom types working (e.g., Contact, Task)"
+      ],
+      "dependencies": ["step-3"],
+      "agent": null,
+      "notes": ""
+    },
+    {
+      "id": "step-5",
+      "title": "Build proxy layer for onhyper endpoints",
+      "description": "Create the proxy configuration that routes frontend API calls through onhyper to Scout",
+      "status": "pending",
+      "successCriteria": [
+        "Proxy configuration defined (routes map)",
+        "Frontend API calls abstracted behind proxy layer",
+        "No hardcoded API keys in frontend bundle",
+        "Test proxy routing with mock responses"
+      ],
+      "dependencies": ["step-1", "step-4"],
+      "agent": null,
+      "notes": ""
+    },
+    {
+      "id": "step-6",
+      "title": "Create OpenClaw skill package",
+      "description": "Package everything as an OpenClaw skill with SKILL.md and commands",
+      "status": "pending",
+      "successCriteria": [
+        "SKILL.md documented with all commands",
+        "Skill installed in ~/.openclaw/workspace/skills/spa-builder/",
+        "spa-scaffold CLI command working",
+        "Template generation creates valid project structure"
+      ],
+      "dependencies": ["step-2", "step-3", "step-4", "step-5"],
+      "agent": null,
+      "notes": ""
+    },
+    {
+      "id": "step-7",
+      "title": "End-to-end demo deployment",
+      "description": "Deploy a complete demo SPA to onhyper.io using the skill",
+      "status": "pending",
+      "successCriteria": [
+        "Demo app created (e.g., task list or contacts dashboard)",
+        "Successfully built to single HTML",
+        "Deployed to onhyper.io",
+        "Live URL working with Scout backend integration"
+      ],
+      "dependencies": ["step-6"],
+      "agent": null,
+      "notes": ""
+    }
+  ]
+}
