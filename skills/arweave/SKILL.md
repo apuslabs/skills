@@ -36,6 +36,37 @@ Upload files and websites to permanent storage on Arweave, and manage ArNS (Arwe
 node skills/arweave/index.mjs upload "<file>" --wallet "<path/to/wallet.json>"
 ```
 
+### Turbo (Irys) Upload Support
+
+This skill supports **Turbo/Irys bundling** for faster, cheaper uploads. Turbo is used by default for uploads.
+
+**Benefits of Turbo:**
+- **Faster**: Uploads complete in seconds vs. minutes for direct Arweave
+- **Cheaper**: Often significantly lower fees, especially for small files
+- **Free tier**: Small uploads may be free
+
+**Options:**
+
+- `--turbo` - Use Turbo/Irys for upload (default: enabled)
+- `--no-turbo` - Use direct Arweave transactions instead of Turbo
+- `--turbo-node <url>` - Use a custom Irys node URL (optional)
+
+```sh
+# Upload with Turbo (default - faster and cheaper)
+node skills/arweave/index.mjs upload "file.json" --wallet "wallet.json"
+
+# Explicitly use Turbo
+node skills/arweave/index.mjs upload "file.json" --turbo --wallet "wallet.json"
+
+# Use direct Arweave instead of Turbo
+node skills/arweave/index.mjs upload "file.json" --no-turbo --wallet "wallet.json"
+
+# Use custom Irys node
+node skills/arweave/index.mjs upload "file.json" --turbo-node "https://custom-irys.node.io" --wallet "wallet.json"
+```
+
+**Note**: Turbo requires an Irys node or API key. The default uses AR.IO's Turbo service. If Turbo fails, the upload will automatically fall back to direct Arweave.
+
 ### Upload a Website/Directory
 
 ```sh
@@ -44,6 +75,18 @@ node skills/arweave/index.mjs upload-site "<directory>" --index "index.html" --w
 
 - `--index` specifies the default file served at the root (defaults to `index.html`)
 - The returned `txId` is the **manifest transaction** that serves the entire site
+
+### Upload Progress
+
+Add `--progress` flag to upload commands to show upload progress.
+
+```sh
+# Show progress bar during upload
+node skills/arweave/index.mjs upload-site "./myapp" --progress --wallet "wallet.json"
+```
+
+- Shows percentage or bytes uploaded
+- Useful for large files
 
 ### Attach Transaction to ArNS Name
 
@@ -216,3 +259,164 @@ node skills/arweave/index.mjs attach "<txId>" "hello_rakis" --network testnet --
 # Attach using specific ARIO process
 node skills/arweave/index.mjs attach "<txId>" "hello_rakis" --ario-process testnet --wallet "/path/to/wallet.json" --yes
 ```
+
+## Cost Estimation
+
+Add `--estimate` or `--dry-run` flag to show upload cost without posting.
+
+```sh
+# Estimate cost before uploading
+node skills/arweave/index.mjs upload-site "./myapp" --estimate --wallet "wallet.json"
+```
+
+- Shows estimated AR cost based on file size
+- Does NOT post transaction
+
+## Error Handling
+
+This section documents common errors you may encounter when using Arweave commands and how to resolve them.
+
+### Invalid Wallet File
+
+**What the error looks like:**
+```
+Error: Invalid JWK wallet file
+```
+or
+```
+Error: Wallet file not found
+```
+or parsing errors related to missing `n`, `e`, or other RSA key components.
+
+**How to fix it:**
+- Verify the wallet file path is correct
+- Ensure the wallet file is valid JSON in JWK format
+- Check that it contains required fields: `n`, `e`, `d`, `p`, `q`, `dp`, `dq`, `qi`
+
+**Recovery steps:**
+1. Confirm the file exists at the specified path
+2. Validate the JSON structure with `cat wallet.json | jq .`
+3. If corrupted, restore from backup or obtain a new wallet
+
+### Insufficient AR Balance
+
+**What the error looks like:**
+```
+Error: Insufficient AR balance for transaction
+```
+or
+```
+Error: Not enough AR to cover winston cost
+```
+
+**How to fix it:**
+- The wallet does not have enough AR tokens to fund the transaction plus fees
+
+**Recovery steps:**
+1. Check wallet balance using an Arweave block explorer (arweave.net)
+2. Fund the wallet with more AR tokens
+3. For testnet, use the testnet faucet to get test AR
+
+### Network Timeouts
+
+**What the error looks like:**
+```
+Error: Request timed out
+```
+or
+```
+Error: connect ETIMEDOUT
+```
+or gateway 504/503 errors.
+
+**How to fix it:**
+- Temporary network issues or gateway overload
+
+**Recovery steps:**
+1. Retry the command (network issues are often transient)
+2. Check Arweave network status (arweave.net health endpoints)
+3. Try again in a few minutes
+4. For uploads, verify the file exists and is accessible
+
+### Transaction Failures
+
+**What the error looks like:**
+```
+Error: Transaction failed
+```
+or
+```
+Error: TX_FAILED
+```
+
+**How to fix it:**
+- The transaction was rejected by the network (invalid data, insufficient fees, etc.)
+
+**Recovery steps:**
+1. Verify the file data is valid and not corrupted
+2. Check that the transaction fee is sufficient
+3. Retry with a slightly higher fee if the transaction keeps failing
+4. Ensure the wallet has sufficient balance
+
+### Invalid ArNS Name Format
+
+**What the error looks like:**
+```
+Error: Invalid ArNS name format
+```
+or
+```
+Error: Name must be lowercase alphanumeric
+```
+
+**How to fix it:**
+- ArNS names must follow specific formatting rules
+
+**Recovery steps:**
+1. Use only lowercase letters (a-z), numbers (0-9), and underscores (_)
+2. Ensure format is correct: `name` or `undername_basename`
+3. Strip any `.ar.io` suffix (use just `name`, not `name.ar.io`)
+4. Examples: `rakis`, `hello_rakis`, `docs_myproject`
+
+## Security
+
+Follow these security best practices when working with Arweave wallets and transactions.
+
+### Wallet File Permissions
+
+**Best practice:** Restrict file permissions to owner-only access.
+
+```sh
+# Set permissions to read/write for owner only
+chmod 600 /path/to/wallet.json
+```
+
+This prevents other users on the system from reading your wallet file.
+
+### Never Share JWK Contents
+
+- Your JWK (JSON Web Key) wallet file contains your private key
+- **Never** share the contents of your wallet file with anyone
+- Never paste wallet contents into chat, documentation, or code
+- Never commit wallet files to version control
+
+### Input Validation for File Paths
+
+- Validate that file paths exist before passing to upload commands
+- Be cautious with paths provided by users
+- Use absolute paths when possible to avoid ambiguity
+- Check that you're not accidentally uploading sensitive files
+
+### Don't Log Sensitive Data
+
+- Never log or output wallet private key contents
+- Don't echo wallet file paths in verbose logs
+- When reporting errors, redact sensitive information
+- Transaction IDs and addresses are safe to share; private keys are not
+
+### Additional Tips
+
+- Keep backups of your wallet in a secure location
+- Consider using a hardware wallet or dedicated wallet for production use
+- Test with small amounts or testnet before doing mainnet transactions
+- Verify transaction IDs after upload to confirm success
