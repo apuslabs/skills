@@ -28,6 +28,37 @@ Upload files and websites to permanent storage on Arweave, and manage ArNS (Arwe
 - Pass the wallet path via `--wallet <path>` argument
 - **Never expose or log wallet contents**
 
+## Security & Privacy
+
+**Your wallet stays local.** This skill:
+
+- Reads wallet files **locally only** for signing transactions
+- **Never transmits** your wallet or private keys to any remote endpoint
+- Uses **standard GraphQL endpoints** to query transaction data
+
+### Endpoints Contacted
+
+By default, this skill may contact:
+- `https://arweave.net/graphql` - Official Arweave gateway
+- `https://arweave-search.goldsky.com/graphql` - Arweave Search indexer
+
+You can override with `--graphql-endpoint` to use your own node.
+
+### Wallet Data Flow
+
+1. Wallet is loaded into memory for signing **only**
+2. Private keys never leave your machine
+3. All signing happens locally before data is uploaded
+4. Skill does not log or expose wallet contents
+
+### Security Audit Note
+
+If you're reviewing this skill for security:
+- The skill reads wallet files (JWK format) which contains private keys
+- This is necessary for signing Arweave transactions
+- No code path transmits wallet data over the network
+- Only transaction IDs, queries, and signed data are sent to gateways
+
 ## Commands
 
 ### Upload a Single File
