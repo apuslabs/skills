@@ -16,6 +16,7 @@ interface ParsedArgs {
   yes: boolean;
   help: boolean;
   force: boolean;
+  dryRun: boolean;
   network: 'mainnet' | 'testnet';
   arioProcess: string | null;
   queryIds?: string[];
@@ -46,6 +47,7 @@ function parseArgs(args: string[]): ParsedArgs {
     yes: false,
     help: false,
     force: false,
+    dryRun: false,
     network: 'mainnet',
     arioProcess: null,
   };
@@ -85,6 +87,9 @@ function parseArgs(args: string[]): ParsedArgs {
       i++;
     } else if (arg === '--force' || arg === '-f') {
       result.force = true;
+      i++;
+    } else if (arg === '--dry-run') {
+      result.dryRun = true;
       i++;
     } else if (arg === '--network') {
       const val = requireFlagValue('--network');
@@ -253,6 +258,7 @@ Options:
                         Can be: mainnet, testnet, or a process ID
   --force               Continue upload-site even if index file is missing
   --yes, -y             Skip confirmation prompts
+  --dry-run             Estimate cost without uploading
   --help, -h            Show this help message
 
 Query Options:
@@ -271,7 +277,9 @@ Environment:
 
 Examples:
   arweave-skill upload ./file.md --wallet ./wallet.json
+  arweave-skill upload ./file.md --wallet ./wallet.json --dry-run
   arweave-skill upload-site ./dist --wallet ./wallet.json
+  arweave-skill upload-site ./dist --wallet ./wallet.json --dry-run
   arweave-skill attach <txId> myname --network mainnet --wallet ./wallet.json
   arweave-skill attach <txId> sub_myname --ario-process testnet --wallet ./wallet.json --yes
   arweave-skill query --owner <address> --limit 5
@@ -325,6 +333,74 @@ function validateWallet(walletPath: string): ArweaveJWK {
   return walletData as ArweaveJWK;
 }
 
+// Helper: Format bytes to human-readable
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${units[i]}`;
+}
+
+// Helper: Format winstons to AR
+function formatWinstons(winstons: bigint | number): string {
+  const ar = Number(winstons) / 1e12;
+  return `${ar.toFixed(9)} AR`;
+}
+
+// Helper: Get directory size recursively
+function getDirectorySize(dirPath: string): number {
+  let totalSize = 0;
+  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      totalSize += getDirectorySize(fullPath);
+    } else if (entry.isFile()) {
+      totalSize += fs.statSync(fullPath).size;
+    }
+  }
+  return totalSize;
+}
+
+// Helper: Count files in directory recursively
+function countFiles(dirPath: string): number {
+  let count = 0;
+  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      count += countFiles(fullPath);
+    } else if (entry.isFile()) {
+      count++;
+    }
+  }
+  return count;
+}
+
+// Helper: Estimate Turbo upload cost
+async function estimateTurboCost(bytes: number): Promise<{ winstons: bigint; ar: string }> {
+  // Turbo pricing: roughly 1 winston per byte, with minimums
+  // Actual pricing is fetched from the Turbo node, but we can estimate
+  // Based on typical Arweave rates: ~0.000001 AR per KB for small files
+  // Turbo often has a free tier up to ~120KB
+  const FREE_TIER_BYTES = 120 * 1024; // 120 KB
+  
+  let winstons: bigint;
+  if (bytes <= FREE_TIER_BYTES) {
+    // Free tier (Turbo may still charge 1 winston minimum)
+    winstons = BigInt(1);
+  } else {
+    // Estimate based on ~$0.0000001 per byte (varies with AR price)
+    // This is a rough estimate; actual pricing comes from Turbo API
+    const bytesOverFree = bytes - FREE_TIER_BYTES;
+    // Approximate: 100 winstons per byte above free tier
+    winstons = BigInt(Math.ceil(bytesOverFree * 100));
+  }
+  
+  const ar = Number(winstons) / 1e12;
+  return { winstons, ar: `${ar.toFixed(9)} AR` };
+}
+
 async function resolveWallet(cliWalletPath: string | null): Promise<ArweaveJWK> {
   let walletPath: string | null = null;
 
@@ -370,6 +446,28 @@ async function handleUpload(args: ParsedArgs): Promise<void> {
   if (stats.isDirectory()) {
     console.error('Error: Path is a directory. Use upload-site for directories.');
     process.exit(1);
+  }
+
+  const fileSize = stats.size;
+
+  // Dry-run: estimate cost without uploading
+  if (args.dryRun) {
+    console.log(`[DRY RUN] File upload estimate:`);
+    console.log(`  File: ${filePath}`);
+    console.log(`  Size: ${formatBytes(fileSize)}`);
+    
+    const estimate = await estimateTurboCost(fileSize);
+    console.log(`  Estimated cost: ${estimate.ar}`);
+    
+    // Free tier check
+    const FREE_TIER_BYTES = 120 * 1024;
+    if (fileSize <= FREE_TIER_BYTES) {
+      console.log(`  Note: File may qualify for Turbo free tier (<= 120 KB)`);
+    }
+    
+    console.log('');
+    console.log('Run without --dry-run to upload.');
+    return;
   }
 
   const wallet = await resolveWallet(args.wallet);
@@ -434,6 +532,34 @@ async function handleUploadSite(args: ParsedArgs): Promise<void> {
       console.error(`  Use --force to upload anyway, or --index to specify a different index file`);
       process.exit(1);
     }
+  }
+
+  // Calculate directory size and file count
+  const totalSize = getDirectorySize(dirPath);
+  const fileCount = countFiles(dirPath);
+
+  // Dry-run: estimate cost without uploading
+  if (args.dryRun) {
+    console.log(`[DRY RUN] Site upload estimate:`);
+    console.log(`  Directory: ${dirPath}`);
+    console.log(`  Files: ${fileCount}`);
+    console.log(`  Total size: ${formatBytes(totalSize)}`);
+    console.log(`  Index file: ${indexFile}`);
+    
+    const estimate = await estimateTurboCost(totalSize);
+    console.log(`  Estimated cost: ${estimate.ar}`);
+    
+    // Free tier check
+    const FREE_TIER_BYTES = 120 * 1024;
+    if (totalSize <= FREE_TIER_BYTES) {
+      console.log(`  Note: Site may qualify for Turbo free tier (<= 120 KB total)`);
+    } else {
+      console.log(`  Note: Estimate is approximate. Actual cost may vary.`);
+    }
+    
+    console.log('');
+    console.log('Run without --dry-run to upload.');
+    return;
   }
 
   const wallet = await resolveWallet(args.wallet);
