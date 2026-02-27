@@ -55,7 +55,7 @@ interface GraphQLResponse {
 const GRAPHQL_ENDPOINTS = [
   'https://arweave.net/graphql',
   'https://arweave-search.goldsky.com/graphql',
-  'https://g8way.io/graphql'
+  'https://arweave.net/graphql'
 ];
 const PAGE_SIZE = 100; // GraphQL returns max 100 per page
 const DEFAULT_LIMIT = 10;

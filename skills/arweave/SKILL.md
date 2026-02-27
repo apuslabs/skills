@@ -221,7 +221,7 @@ The `query` command automatically tries multiple GraphQL endpoints for reliabili
 
 1. `https://arweave.net/graphql` (primary - official gateway)
 2. `https://arweave-search.goldsky.com/graphql` (fallback - Goldsky indexer)
-3. `https://g8way.io/graphql` (fallback - alternative gateway)
+3. `https://arweave.net/graphql` (fallback - alternative gateway)
 
 This happens **transparently** - the command uses whichever endpoint responds first. You don't need to do anything; it just works.
 
@@ -236,7 +236,7 @@ node skills/arweave/index.mjs query --tag "Content-Type:text/html" --limit 5 \
 
 # Force use of a specific public endpoint
 node skills/arweave/index.mjs query --owner <address> --limit 10 \
-  --graphql-endpoint "https://g8way.io/graphql"
+  --graphql-endpoint "https://arweave.net/graphql"
 ```
 
 **Note**: When `--graphql-endpoint` is provided, the automatic fallback is disabled. Only the specified endpoint will be tried.
