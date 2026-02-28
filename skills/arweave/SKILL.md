@@ -24,17 +24,88 @@ Upload files and websites to permanent storage on Arweave, and manage ArNS (Arwe
 
 **Important**: This skill requires an Arweave wallet file (JWK format).
 
-- If the user has not provided a wallet path, **ask them for it** before proceeding
-- Pass the wallet path via `--wallet <path>` argument
-- **Never expose or log wallet contents**
+### Wallet Detection (Priority Order)
 
-## Security & Privacy
+The skill automatically detects wallets in this order:
+
+1. **`--wallet` flag** - Explicit wallet path provided via command line
+2. **`ARWEAVE_WALLET` environment variable** - Wallet path set in shell config
+3. **`~/.arweave/wallet.json`** - Default wallet location
+4. **Interactive onboarding** - Guided wallet creation if no wallet found
+
+### Wallet Onboarding
+
+If no wallet is configured, the skill will guide you through creating one:
+
+```
+🔐 No Arweave wallet found.
+
+An Arweave wallet is required to sign transactions on the permaweb.
+
+Options:
+  1. Create a new wallet (recommended for new users)
+  2. Specify an existing wallet path
+  3. Set ARWEAVE_WALLET environment variable and retry
+
+Choose [1-3]:
+```
+
+**Option 1 - Create New Wallet:**
+- Generates a new Arweave keyfile
+- Saves to `~/.arweave/wallet.json` (default) or custom path
+- Automatically adds `ARWEAVE_WALLET` to your shell config (`.bashrc` or `.zshrc`)
+- Adds wallet to `.gitignore` for safety
+
+**Security Warnings Shown:**
+- 🔒 **BACKUP YOUR WALLET** - Store a secure backup; lost wallets cannot be recovered
+- 🚫 **NEVER COMMIT TO GIT** - Wallet files should never be in version control
+- 🔐 **KEEP IT PRIVATE** - Never share wallet contents
+
+### Setting Up Wallet Manually
+
+If you prefer to configure manually:
+
+```sh
+# Set environment variable (add to ~/.bashrc or ~/.zshrc)
+export ARWEAVE_WALLET="/path/to/wallet.json"
+
+# Or use default location
+mkdir -p ~/.arweave
+cp /path/to/wallet.json ~/.arweave/wallet.json
+chmod 600 ~/.arweave/wallet.json
+```
+
+### Security Best Practices
 
 **Your wallet stays local.** This skill:
 
 - Reads wallet files **locally only** for signing transactions
 - **Never transmits** your wallet or private keys to any remote endpoint
 - Uses **standard GraphQL endpoints** to query transaction data
+
+**Additional Security:**
+
+```sh
+# Restrict wallet file permissions
+chmod 600 ~/.arweave/wallet.json
+
+# Add wallet to .gitignore
+echo "wallet.json" >> .gitignore
+echo ".arweave/" >> .gitignore
+```
+
+**NEVER:**
+- Share your wallet file contents
+- Commit wallet files to version control
+- Upload wallet files anywhere
+
+**Wallet File Security Audit Note:**
+
+If you're reviewing this skill for security:
+- The skill reads wallet files (JWK format) which contains private keys
+- This is necessary for signing Arweave transactions
+- No code path transmits wallet data over the network
+- Only transaction IDs, queries, and signed data are sent to gateways
 
 ### Endpoints Contacted
 
@@ -50,14 +121,6 @@ You can override with `--graphql-endpoint` to use your own node.
 2. Private keys never leave your machine
 3. All signing happens locally before data is uploaded
 4. Skill does not log or expose wallet contents
-
-### Security Audit Note
-
-If you're reviewing this skill for security:
-- The skill reads wallet files (JWK format) which contains private keys
-- This is necessary for signing Arweave transactions
-- No code path transmits wallet data over the network
-- Only transaction IDs, queries, and signed data are sent to gateways
 
 ### Indirect Prompt Injection (W011)
 

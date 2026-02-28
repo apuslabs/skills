@@ -1,10 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import * as readline from 'readline';
 import { NodeARx } from '@permaweb/arx/node';
 import { ArweaveSigner, ARIO, ANT, AOProcess, ARIO_MAINNET_PROCESS_ID, ARIO_TESTNET_PROCESS_ID } from '@ar.io/sdk/node';
 import { connect } from '@permaweb/aoconnect';
 import { queryTransactions, QueryParams } from './graphql.js';
+import Arweave from 'arweave';
 
 interface ParsedArgs {
   command: string | null;
@@ -33,6 +35,13 @@ interface ParsedArgs {
 interface ArweaveJWK {
   kty: string;
   n: string;
+  e: string;
+  d?: string;
+  p?: string;
+  q?: string;
+  dp?: string;
+  dq?: string;
+  qi?: string;
   [key: string]: unknown;
 }
 
@@ -261,16 +270,11 @@ Options:
   --dry-run             Estimate cost without uploading
   --help, -h            Show this help message
 
-Query Options:
-  --ids <id1,id2,...>   Filter by comma-separated transaction IDs
-  --owner <address>     Filter by owner address (repeatable)
-  --recipient <address> Filter by recipient address (repeatable)
-  --tag <name:value>    Filter by tag (repeatable, same name = OR logic)
-  --block-min <height>  Minimum block height
-  --block-max <height>  Maximum block height
-  --limit <n>           Maximum number of results (default: 10)
-  --sort <order>        Sort order: HEIGHT_DESC or HEIGHT_ASC (default: HEIGHT_DESC)
-  --graphql-endpoint <url> Custom GraphQL endpoint (default: auto-fallback)
+Wallet Detection (in order):
+  1. --wallet flag (explicit path)
+  2. ARWEAVE_WALLET environment variable
+  3. ~/.arweave/wallet.json (default location)
+  4. Interactive onboarding (create new wallet)
 
 Environment:
   ARWEAVE_WALLET        Path to wallet keyfile (alternative to --wallet)
@@ -347,6 +351,219 @@ function formatWinstons(winstons: bigint | number): string {
   return `${ar.toFixed(9)} AR`;
 }
 
+// Default wallet location
+const DEFAULT_WALLET_DIR = path.join(os.homedir(), '.arweave');
+const DEFAULT_WALLET_PATH = path.join(DEFAULT_WALLET_DIR, 'wallet.json');
+
+/**
+ * Detect user's shell configuration file
+ */
+function detectShellConfig(): string {
+  const shell = process.env.SHELL || '/bin/bash';
+  const homeDir = os.homedir();
+  
+  if (shell.includes('zsh')) {
+    return path.join(homeDir, '.zshrc');
+  } else if (shell.includes('bash')) {
+    return path.join(homeDir, '.bashrc');
+  } else if (shell.includes('fish')) {
+    return path.join(homeDir, '.config', 'fish', 'config.fish');
+  }
+  
+  // Default to bashrc
+  return path.join(homeDir, '.bashrc');
+}
+
+/**
+ * Check if wallet path is already configured in shell config
+ */
+function isWalletInShellConfig(shellConfigPath: string, walletPath: string): boolean {
+  if (!fs.existsSync(shellConfigPath)) {
+    return false;
+  }
+  
+  const content = fs.readFileSync(shellConfigPath, 'utf-8');
+  const exportLine = `export ARWEAVE_WALLET="${walletPath}"`;
+  return content.includes(exportLine);
+}
+
+/**
+ * Add wallet path to shell configuration
+ */
+function addWalletToShellConfig(walletPath: string): void {
+  const shellConfigPath = detectShellConfig();
+  
+  if (isWalletInShellConfig(shellConfigPath, walletPath)) {
+    console.log(`  Wallet path already configured in ${shellConfigPath}`);
+    return;
+  }
+  
+  const exportLine = `\n# Arweave wallet path\nexport ARWEAVE_WALLET="${walletPath}"\n`;
+  fs.appendFileSync(shellConfigPath, exportLine);
+  
+  console.log(`\n  Added to ${path.basename(shellConfigPath)}:`);
+  console.log(`    export ARWEAVE_WALLET="${walletPath}"`);
+  console.log(`\n  Run 'source ~/${path.basename(shellConfigPath)}' or restart your terminal to persist.`);
+}
+
+/**
+ * Generate a new Arweave wallet
+ */
+async function generateWallet(): Promise<ArweaveJWK> {
+  const arweave = Arweave.init({});
+  const wallet = await arweave.wallets.generate();
+  // Cast to ArweaveJWK - the generated wallet has all required JWK fields
+  return wallet as unknown as ArweaveJWK;
+}
+
+/**
+ * Save wallet to file with proper permissions
+ */
+function saveWallet(wallet: ArweaveJWK, walletPath: string): void {
+  // Create directory if it doesn't exist
+  const dir = path.dirname(walletPath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  }
+  
+  // Write wallet file with restricted permissions
+  fs.writeFileSync(walletPath, JSON.stringify(wallet, null, 2), { mode: 0o600 });
+  
+  console.log(`\n  Wallet created: ${walletPath}`);
+}
+
+/**
+ * Run wallet onboarding flow
+ */
+async function runWalletOnboarding(): Promise<ArweaveJWK> {
+  console.log('\n🔐 No Arweave wallet found.\n');
+  console.log('An Arweave wallet is required to sign transactions on the permaweb.');
+  console.log('');
+  console.log('Options:');
+  console.log('  1. Create a new wallet (recommended for new users)');
+  console.log('  2. Specify an existing wallet path');
+  console.log('  3. Set ARWEAVE_WALLET environment variable and retry');
+  console.log('');
+  
+  const choice = await promptForInput('Choose [1-3]: ');
+  
+  switch (choice.trim()) {
+    case '1': {
+      console.log('\n  Creating new wallet...');
+      
+      // Generate wallet
+      const wallet = await generateWallet();
+      
+      // Determine wallet path
+      let walletPath = DEFAULT_WALLET_PATH;
+      const customPath = await promptForInput(`  Store at [${walletPath}]: `);
+      if (customPath.trim()) {
+        walletPath = customPath.trim().startsWith('~') 
+          ? path.join(os.homedir(), customPath.trim().slice(1))
+          : path.resolve(customPath.trim());
+      }
+      
+      // Save wallet
+      saveWallet(wallet, walletPath);
+      
+      // Add to shell config
+      addWalletToShellConfig(walletPath);
+      
+      // Security warnings
+      console.log('\n⚠️  IMPORTANT SECURITY WARNINGS:');
+      console.log('   ┌──────────────────────────────────────────────────────────┐');
+      console.log('   │  1. BACKUP YOUR WALLET                                   │');
+      console.log('   │     Store a secure backup in a password manager or      │');
+      console.log('   │     offline storage. If you lose this file, your AR is  │');
+      console.log('   │     GONE FOREVER.                                         │');
+      console.log('   │                                                          │');
+      console.log('   │  2. NEVER COMMIT TO GIT                                   │');
+      console.log('   │     Add wallet.json to your .gitignore file.            │');
+      console.log('   │     Anyone with access to your wallet can spend your AR. │');
+      console.log('   │                                                          │');
+      console.log('   │  3. KEEP IT PRIVATE                                      │');
+      console.log('   │     Never share your wallet file or its contents.        │');
+      console.log('   └──────────────────────────────────────────────────────────┘');
+      console.log('');
+      
+      // Add to gitignore
+      const gitignorePath = path.join(process.cwd(), '.gitignore');
+      if (fs.existsSync(gitignorePath)) {
+        const gitignore = fs.readFileSync(gitignorePath, 'utf-8');
+        if (!gitignore.includes('wallet.json') && !gitignore.includes(path.basename(walletPath))) {
+          fs.appendFileSync(gitignorePath, `\n# Arweave wallets\n${path.basename(walletPath)}\n`);
+          console.log(`  Added ${path.basename(walletPath)} to .gitignore`);
+        }
+      }
+      
+      // Set environment variable for current process
+      process.env.ARWEAVE_WALLET = walletPath;
+      
+      return wallet;
+    }
+    
+    case '2': {
+      const walletPath = await promptForInput('  Path to wallet file: ');
+      if (!walletPath.trim()) {
+        throw new Error('No wallet path provided');
+      }
+      
+      const resolvedPath = walletPath.trim().startsWith('~')
+        ? path.join(os.homedir(), walletPath.trim().slice(1))
+        : path.resolve(walletPath.trim());
+      
+      const wallet = validateWallet(resolvedPath);
+      
+      // Optionally add to shell config
+      const addToShell = await promptForInput('  Add to shell config for future sessions? [Y/n]: ');
+      if (addToShell.toLowerCase() !== 'n') {
+        addWalletToShellConfig(resolvedPath);
+        process.env.ARWEAVE_WALLET = resolvedPath;
+      }
+      
+      return wallet;
+    }
+    
+    case '3': {
+      console.log('\n  Set ARWEAVE_WALLET and run again:');
+      console.log('    export ARWEAVE_WALLET="/path/to/wallet.json"');
+      console.log('    # Or add to your ~/.bashrc or ~/.zshrc:');
+      console.log('    echo \'export ARWEAVE_WALLET="/path/to/wallet.json"\' >> ~/.bashrc');
+      console.log('    source ~/.bashrc');
+      process.exit(1);
+    }
+    
+    default:
+      console.log('Invalid choice.');
+      process.exit(1);
+  }
+  
+  // Should not reach here
+  throw new Error('Wallet onboarding failed');
+}
+
+/**
+ * Detect wallet path from multiple sources
+ */
+function detectWalletPath(cliWalletPath: string | null): string | null {
+  // 1. CLI argument takes precedence
+  if (cliWalletPath) {
+    return path.resolve(cliWalletPath);
+  }
+  
+  // 2. Environment variable
+  if (process.env.ARWEAVE_WALLET) {
+    return path.resolve(process.env.ARWEAVE_WALLET);
+  }
+  
+  // 3. Default location
+  if (fs.existsSync(DEFAULT_WALLET_PATH)) {
+    return DEFAULT_WALLET_PATH;
+  }
+  
+  return null;
+}
+
 // Helper: Get directory size recursively
 function getDirectorySize(dirPath: string): number {
   let totalSize = 0;
@@ -402,28 +619,27 @@ async function estimateTurboCost(bytes: number): Promise<{ winstons: bigint; ar:
 }
 
 async function resolveWallet(cliWalletPath: string | null): Promise<ArweaveJWK> {
-  let walletPath: string | null = null;
+  // Try to detect wallet from all sources
+  const walletPath = detectWalletPath(cliWalletPath);
+  
+  if (walletPath) {
+    // Wallet found, validate and return
+    return validateWallet(walletPath);
+  }
+  
+  // No wallet found - run onboarding flow
+  return runWalletOnboarding();
+}
 
-  // 1. Check CLI argument
-  if (cliWalletPath) {
-    walletPath = cliWalletPath;
+async function resolveWalletNonInteractive(cliWalletPath: string | null): Promise<ArweaveJWK | null> {
+  // Non-interactive version for --dry-run and query commands
+  const walletPath = detectWalletPath(cliWalletPath);
+  
+  if (walletPath) {
+    return validateWallet(walletPath);
   }
-  // 2. Check environment variable
-  else if (process.env.ARWEAVE_WALLET) {
-    walletPath = process.env.ARWEAVE_WALLET;
-  }
-  // 3. Prompt on stdin
-  else {
-    walletPath = await promptForInput('Path to Arweave wallet keyfile (JWK json): ');
-  }
-
-  if (!walletPath) {
-    throw new Error('No wallet path provided');
-  }
-
-  // Resolve relative paths
-  const resolvedPath = path.resolve(walletPath);
-  return validateWallet(resolvedPath);
+  
+  return null;
 }
 
 async function handleUpload(args: ParsedArgs): Promise<void> {
@@ -577,6 +793,9 @@ async function handleUploadSite(args: ParsedArgs): Promise<void> {
   await arx.ready();
 
   const result = await arx.uploadFolder(dirPath, { indexFile });
+  if (!result || !result.id) {
+    throw new Error('Upload failed: no transaction ID returned');
+  }
   const txId = result.id;
 
   console.log('');
