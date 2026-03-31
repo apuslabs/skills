@@ -11,6 +11,7 @@ A collection of Permaweb CLI skills for [Claude Code](https://claude.ai/code) an
 | Skill | Description | Docs |
 |-------|-------------|------|
 | `arweave` | Upload files/sites to Arweave + manage ArNS records | [skills/arweave/SKILL.md](skills/arweave/SKILL.md) |
+| `arback` | Encrypted AR-wallet backup and restore for agent memory | [skills/arback/SKILL.md](skills/arback/SKILL.md) |
 | `monitor` | AO Task Monitor client (summaries, alerts, logs) | [skills/monitor/SKILL.md](skills/monitor/SKILL.md) |
 
 ## Installation
@@ -20,6 +21,9 @@ Install skills into your project using the `skills` CLI:
 ```sh
 # Install the Arweave skill
 npx skills add https://github.com/permaweb/skills --skill arweave
+
+# Install the arback (memory backup) skill
+npx skills add https://github.com/permaweb/skills --skill arback
 
 # Install the Monitor skill
 npx skills add https://github.com/permaweb/skills --skill monitor
@@ -42,6 +46,19 @@ use arweave to attach <txId> to myname
 Claude Code will prompt for your wallet path if not configured.
 
 **Full docs:** [skills/arweave/SKILL.md](skills/arweave/SKILL.md)
+
+### arback
+
+```
+back up my memory to Arweave
+restore my memory from the last backup
+check my Turbo balance
+save my agent memory
+```
+
+Requires `AR_WALLET_PATH` (or `AR_WALLET_JSON`) environment variable pointing to an AR wallet in JWK format.
+
+**Full docs:** [skills/arback/SKILL.md](skills/arback/SKILL.md)
 
 ### Monitor
 
@@ -85,6 +102,29 @@ The query command supports automatic endpoint fallback for reliability. If the p
 
 **Full docs:** [skills/arweave/SKILL.md](skills/arweave/SKILL.md)
 
+### arback
+
+```sh
+export AR_WALLET_PATH=~/.aos.json
+
+# Install dependencies (first time only)
+python skills/arback/scripts/arback.py init
+
+# Dry-run backup — shows file list and cost estimate
+python skills/arback/scripts/arback.py backup --input memory/ --dry-run
+
+# Back up memory/ to Arweave
+python skills/arback/scripts/arback.py backup --input memory/
+
+# Restore the latest backup
+python skills/arback/scripts/arback.py restore --latest --out memory/
+
+# Check wallet address and Turbo balance
+python skills/arback/scripts/arback.py status
+```
+
+**Full docs:** [skills/arback/SKILL.md](skills/arback/SKILL.md)
+
 ### Monitor
 
 ```sh
@@ -104,7 +144,8 @@ node skills/monitor/index.mjs logs --limit 50
 
 - Node.js 18+
 - Internet access
-- Arweave wallet (JWK format) for `arweave` skill
+- Arweave wallet (JWK format) for `arweave` and `arback` skills
+- Python 3.9+ and `uv` for `arback` skill (`pip install uv`)
 - `AO_MONITOR_KEY` env var for `monitor` skill
 
 ## Development

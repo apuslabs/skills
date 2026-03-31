@@ -1,0 +1,9 @@
+{
+  "name": "arback-turbo",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Turbo upload/topup helpers for arback",
+  "dependencies": {
+    "@ardrive/turbo-sdk": "^1.41.0"
+  }
+}
