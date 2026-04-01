@@ -17,26 +17,28 @@ A collection of Permaweb CLI skills for [Claude Code](https://claude.ai/code) an
 
 ## Installation
 
-**One-liner** — paste this into Claude Code or any compatible agent:
+Paste any of these into your agent (Claude Code, OpenCode, OpenClaw, etc.):
+
+```
+install this skill for me https://github.com/apuslabs/skills/tree/main/skills/arweave
+```
+
+```
+install this skill for me https://github.com/apuslabs/skills/tree/main/skills/monitor
+```
+
+```
+install this skill for me https://github.com/apuslabs/skills/tree/main/skills/aoconnect
+```
+
+```
+install this skill for me https://github.com/apuslabs/skills/tree/main/skills/trade-audit
+```
+
+Or install all skills at once:
 
 ```
 Fetch and follow instructions from https://raw.githubusercontent.com/apuslabs/skills/refs/heads/main/INSTALL.md
-```
-
-Or install individual skills using the `skills` CLI:
-
-```sh
-# Install the Arweave skill
-npx skills add https://github.com/permaweb/skills --skill arweave
-
-# Install the Monitor skill
-npx skills add https://github.com/permaweb/skills --skill monitor
-
-# Install the AO Connect skill
-npx skills add https://github.com/permaweb/skills --skill aoconnect
-
-# Install the Trade-Audit skill
-npx skills add https://github.com/apuslabs/skills --skill trade-audit
 ```
 
 This adds the skill to your project's `.claude/skills/` or `.opencode/skills/` directory.
