@@ -17,7 +17,13 @@ A collection of Permaweb CLI skills for [Claude Code](https://claude.ai/code) an
 
 ## Installation
 
-Install skills into your project using the `skills` CLI:
+**One-liner** — paste this into Claude Code or any compatible agent:
+
+```
+Fetch and follow instructions from https://raw.githubusercontent.com/apuslabs/skills/refs/heads/main/INSTALL.md
+```
+
+Or install individual skills using the `skills` CLI:
 
 ```sh
 # Install the Arweave skill
