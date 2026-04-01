@@ -1,6 +1,6 @@
 # Installing Apus Skills
 
-Install Apus Permaweb skills for [Claude Code](https://claude.ai/code) and [OpenCode](https://opencode.ai) via clone and symlink.
+Install Apus Permaweb skills for [Claude Code](https://claude.ai/code), [OpenCode](https://opencode.ai), and [OpenClaw](https://github.com/openclaw) via clone and symlink.
 
 ## Prerequisites
 
@@ -35,7 +35,13 @@ Available skills: `arweave`, `arback`, `monitor`, `aoconnect`, `ao-process-audit
    ln -s ~/.apus/skills/skills .opencode/skills/apus
    ```
 
-3. **Restart Claude Code / OpenCode** to discover the skills.
+   Or into OpenClaw:
+   ```bash
+   mkdir -p ~/.openclaw/skills
+   ln -s ~/.apus/skills/skills ~/.openclaw/skills/apus
+   ```
+
+3. **Restart Claude Code / OpenCode / OpenClaw** to discover the skills.
 
 ## Verify
 
