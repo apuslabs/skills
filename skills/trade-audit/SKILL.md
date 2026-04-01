@@ -37,6 +37,16 @@ The script is at `{baseDir}/analyze.py`.
 
 ## Step 1 — Prepare the decision material
 
+The audit model (`gemma-3-27b-it`) performs best with **concise, focused inputs**. The agent MUST distill raw data into core decision points before submitting.
+
+**Data preparation rules:**
+
+- Extract only: prices, thresholds, numeric values, rules/conditions, addresses, risk factors
+- Strip out: page chrome, disclaimers, marketing text, navigation, repeated boilerplate
+- Keep material under 4,000 characters when possible (warning at 4k, hard truncation at 12k)
+- Each fact should be one short bullet — no paragraphs
+- If a page has 50 data points, pick the 5-10 that directly affect the decision
+
 Create one of these:
 
 1. A text or markdown file containing the organized facts.

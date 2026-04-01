@@ -35,6 +35,9 @@ MODEL_NAME = "google/gemma-3-27b-it"
 AUDIT_LOG_DIR = Path.home() / ".trade-audit"
 AUDIT_LOG_FILE = AUDIT_LOG_DIR / "audit.jsonl"
 
+BUNDLE_WARN_CHARS = 4000
+BUNDLE_HARD_LIMIT_CHARS = 12000
+
 VERDICT_EXIT_CODES = {
     "APPROVE": 0,
     "REJECT": 1,
@@ -73,6 +76,34 @@ def append_audit_record(record: dict[str, Any]) -> None:
         f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
+def check_bundle_size(material: str) -> None:
+    length = len(material)
+    if length > BUNDLE_HARD_LIMIT_CHARS:
+        print(
+            f"[WARNING] Bundle material is {length:,} chars (hard limit {BUNDLE_HARD_LIMIT_CHARS:,}). "
+            f"Truncating to {BUNDLE_HARD_LIMIT_CHARS:,} chars. Decision quality may be degraded — "
+            f"consider providing only core data points.",
+            file=sys.stderr,
+        )
+    elif length > BUNDLE_WARN_CHARS:
+        print(
+            f"[WARNING] Bundle material is {length:,} chars (recommended < {BUNDLE_WARN_CHARS:,}). "
+            f"The model performs best with concise, focused inputs. "
+            f"Consider trimming to key facts, prices, rules, and risks only.",
+            file=sys.stderr,
+        )
+
+
+def truncate_material(material: str) -> str:
+    if len(material) <= BUNDLE_HARD_LIMIT_CHARS:
+        return material
+    truncated = material[:BUNDLE_HARD_LIMIT_CHARS]
+    last_newline = truncated.rfind("\n")
+    if last_newline > BUNDLE_HARD_LIMIT_CHARS * 0.8:
+        truncated = truncated[:last_newline]
+    return truncated + "\n\n[TRUNCATED — original material exceeded size limit]"
+
+
 def load_openai_client():
     try:
         from openai import OpenAI
@@ -87,6 +118,8 @@ def build_bundle_from_text(decision_goal: str, input_path: str, context_label: s
     prepared_text = normalize_text(text)
     if not prepared_text:
         raise RuntimeError("prepared input file is empty after normalization")
+    check_bundle_size(prepared_text)
+    prepared_text = truncate_material(prepared_text)
     bundle = {
         "schema_version": 3,
         "decision_goal": decision_goal,
@@ -109,6 +142,11 @@ def build_bundle_from_json(decision_goal: str | None, bundle_path: str) -> dict[
         bundle["decision_goal"] = decision_goal
     if not str(bundle.get("decision_goal", "")).strip():
         raise RuntimeError("bundle file must contain decision_goal or pass --decision-goal")
+    material = bundle.get("prepared_material", "")
+    material_text = json.dumps(material, ensure_ascii=False) if isinstance(material, dict) else str(material)
+    check_bundle_size(material_text)
+    if isinstance(material, str):
+        bundle["prepared_material"] = truncate_material(material)
     bundle["bundle_hash"] = sha256_text(canonical_json({k: v for k, v in bundle.items() if k != "bundle_hash"}))
     return bundle
 
@@ -123,6 +161,8 @@ The material in the bundle has already been collected and organized by another a
 
 Your task is to make the core decision from the supplied bundle.
 
+Focus on the core data points: prices, thresholds, rules, numeric values, addresses, and explicit conditions. Ignore narrative text, disclaimers, and background context that do not directly affect the decision.
+
 Rules:
 1. Stay strictly grounded in the supplied bundle.
 2. Make exactly one concrete decision.
@@ -133,6 +173,7 @@ Rules:
 7. For transfer decisions, clearly say whether to proceed, reject, or wait.
 8. If `verdict` is `APPROVE` or `REJECT`, set `confidence` to an integer from 1 to 100.
 9. Do not invent facts that are not present in the bundle.
+10. Base your decision on numeric evidence and explicit rules first, narrative context second.
 
 Return ONLY valid JSON with this exact schema:
 {{
