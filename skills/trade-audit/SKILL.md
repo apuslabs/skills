@@ -118,10 +118,12 @@ The agent should fetch data from these APIs, extract the core numbers, and organ
 
 ## Step 2 — Run the audit
 
+No external dependencies required — the script uses only Python stdlib. Just run with `python3`:
+
 ### Standard mode (always returns exit 0 on success)
 
 ```bash
-uv run --project {baseDir} python {baseDir}/analyze.py \
+python3 {baseDir}/analyze.py \
   --input-file /tmp/prepared-decision.md \
   --decision-goal "Decide whether there is a justified BTC buy level from this market page" \
   --bundle-out /tmp/audit-bundle.json \
@@ -131,7 +133,7 @@ uv run --project {baseDir} python {baseDir}/analyze.py \
 ### Gate mode (exit code reflects verdict)
 
 ```bash
-uv run --project {baseDir} python {baseDir}/analyze.py \
+python3 {baseDir}/analyze.py \
   --input-file /tmp/prepared-decision.md \
   --decision-goal "Decide whether there is a justified BTC buy level" \
   --gate \
@@ -148,17 +150,11 @@ Exit codes in gate mode:
 If the agent already prepared a JSON bundle:
 
 ```bash
-uv run --project {baseDir} python {baseDir}/analyze.py \
+python3 {baseDir}/analyze.py \
   --bundle-file /tmp/prepared-bundle.json \
   --gate \
   --bundle-out /tmp/audit-bundle.json \
   --packet-out /tmp/audit-packet.json
-```
-
-If `uv` is unavailable, fall back to:
-
-```bash
-pip install openai -q && python3 {baseDir}/analyze.py --input-file /tmp/prepared-decision.md --decision-goal "Decide whether to act" --gate
 ```
 
 Print the full terminal output to the user exactly as it appears.
@@ -182,7 +178,7 @@ Any skill or agent workflow that involves a trade or transfer must use this patt
 ```bash
 # 1. Agent prepares the decision material into /tmp/audit-input.md
 # 2. Run trade-audit in gate mode
-uv run --project {baseDir} python {baseDir}/analyze.py \
+python3 {baseDir}/analyze.py \
   --input-file /tmp/audit-input.md \
   --decision-goal "Decide whether to transfer 10 AR from wallet A to wallet B" \
   --gate \

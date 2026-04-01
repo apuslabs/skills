@@ -24,8 +24,9 @@ import argparse
 import datetime
 import hashlib
 import json
-import subprocess
+import ssl
 import sys
+import urllib.request
 from pathlib import Path
 from typing import Any
 
@@ -104,13 +105,17 @@ def truncate_material(material: str) -> str:
     return truncated + "\n\n[TRUNCATED — original material exceeded size limit]"
 
 
-def load_openai_client():
-    try:
-        from openai import OpenAI
-    except ImportError:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "openai", "-q"])
-        from openai import OpenAI
-    return OpenAI(api_key="", base_url=APUS_BASE_URL)
+def _http_post(url: str, payload: dict[str, Any], timeout: int = 120) -> dict[str, Any]:
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=data,
+        headers={"Content-Type": "application/json", "User-Agent": "trade-audit/1.0"},
+        method="POST",
+    )
+    ctx = ssl.create_default_context()
+    with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
+        return json.loads(resp.read().decode("utf-8"))
 
 
 def build_bundle_from_text(decision_goal: str, input_path: str, context_label: str | None) -> dict[str, Any]:
@@ -210,16 +215,16 @@ Decision bundle:
 
 
 def run_inference(bundle: dict[str, Any]) -> tuple[dict[str, Any], str, dict[str, Any]]:
-    client = load_openai_client()
     print("\nCalling Apus deterministic inference on NVIDIA H100 TEE...", flush=True)
-    response = client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=[{"role": "user", "content": build_prompt(bundle)}],
-        extra_body={"tee": True},
-        timeout=120,
-    )
+    payload = {
+        "model": MODEL_NAME,
+        "messages": [{"role": "user", "content": build_prompt(bundle)}],
+        "tee": True,
+    }
+    url = f"{APUS_BASE_URL}/chat/completions"
+    resp_dict = _http_post(url, payload)
 
-    raw_content = (response.choices[0].message.content or "").strip()
+    raw_content = (resp_dict["choices"][0]["message"]["content"] or "").strip()
     if raw_content.startswith("```"):
         lines = raw_content.splitlines()
         if lines and lines[0].startswith("```"):
@@ -229,7 +234,7 @@ def run_inference(bundle: dict[str, Any]) -> tuple[dict[str, Any], str, dict[str
         raw_content = "\n".join(lines).strip()
 
     packet = json.loads(raw_content)
-    return packet, raw_content, response.model_dump()
+    return packet, raw_content, resp_dict
 
 
 def normalize_string_list(values: Any) -> list[str]:

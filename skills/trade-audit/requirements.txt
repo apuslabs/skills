@@ -1,1 +1,1 @@
-openai>=1.0.0
+# No external dependencies — uses only Python stdlib (urllib, json, hashlib, ssl)
