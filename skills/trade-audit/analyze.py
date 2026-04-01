@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Tradeproof deterministic decision runner.
+Trade-Audit — mandatory audit gate for trading and transfer decisions.
 
 This script does not fetch or summarize pages on its own.
 The agent must collect and organize the relevant material first.
@@ -10,11 +10,18 @@ The script only:
 2. Normalizes it into a deterministic decision bundle
 3. Sends the bundle to Apus deterministic inference
 4. Returns an attested decision packet
+5. Appends an audit record to the local audit log
+
+Exit codes (gate mode):
+  0 = APPROVE   — the decision passed audit
+  1 = REJECT    — the decision failed audit (or error)
+  2 = WAIT      — insufficient information to decide
 """
 
 from __future__ import annotations
 
 import argparse
+import datetime
 import hashlib
 import json
 import subprocess
@@ -25,6 +32,14 @@ from typing import Any
 
 APUS_BASE_URL = "https://hb.apus.network/~inference@1.0"
 MODEL_NAME = "google/gemma-3-27b-it"
+AUDIT_LOG_DIR = Path.home() / ".trade-audit"
+AUDIT_LOG_FILE = AUDIT_LOG_DIR / "audit.jsonl"
+
+VERDICT_EXIT_CODES = {
+    "APPROVE": 0,
+    "REJECT": 1,
+    "WAIT": 2,
+}
 
 
 def canonical_json(data: Any) -> str:
@@ -50,6 +65,12 @@ def maybe_write_json(path: str | None, payload: dict[str, Any]) -> None:
     out = Path(path)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def append_audit_record(record: dict[str, Any]) -> None:
+    AUDIT_LOG_DIR.mkdir(parents=True, exist_ok=True)
+    with AUDIT_LOG_FILE.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
 def load_openai_client():
@@ -202,6 +223,16 @@ def normalize_packet(packet: dict[str, Any]) -> dict[str, Any]:
     return norm
 
 
+def apply_confidence_gate(packet: dict[str, Any], min_confidence: int) -> dict[str, Any]:
+    if packet["verdict"] == "APPROVE" and packet["confidence"] < min_confidence:
+        packet["verdict"] = "REJECT"
+        packet["decision_rationale"].insert(
+            0,
+            f"Auto-rejected: confidence {packet['confidence']}% is below the minimum threshold of {min_confidence}%",
+        )
+    return packet
+
+
 def row(text: str = "", width: int = 76) -> str:
     text = text[: width - 2] if len(text) > width - 2 else text
     return f"║ {text:<{width - 2}} ║"
@@ -254,13 +285,13 @@ def print_report(
     thin = "·" * (width - 2)
 
     print(f"\n╔{border}╗")
-    print(f"║{'  TRADEPROOF VERIFIED DECISION':^{width}}║")
+    print(f"║{'  TRADE-AUDIT VERIFIED DECISION':^{width}}║")
     print(f"╠{border}╣")
     print(row(f"  Goal          : {bundle['decision_goal']}", width))
     print(row(f"  Input Mode    : {bundle.get('input_mode', 'prepared_bundle')}", width))
     print(row(f"  Model         : {MODEL_NAME}  (Apus Network)", width))
     print(row(f"  Hardware      : {gpu_model}  /  Driver {driver_ver}", width))
-    ver_icon = "✅ VERIFIED" if verified else "❌ UNVERIFIED"
+    ver_icon = "VERIFIED" if verified else "UNVERIFIED"
     print(row(f"  TEE           : {ver_icon}  ({gpu_model})", width))
     print(row(f"  Bundle Hash   : {short_hash(bundle['bundle_hash'])}", width))
     print(row(f"  Output Hash   : {short_hash(output_hash)}", width))
@@ -296,7 +327,7 @@ def print_report(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Send agent-prepared decision material to Apus and obtain an attested decision."
+        description="Trade-Audit: mandatory audit gate for trading and transfer decisions via Apus TEE."
     )
     parser.add_argument("--decision-goal", help="Plain-language decision request")
     parser.add_argument("--input-file", help="Path to agent-prepared text or markdown material")
@@ -304,6 +335,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--context-label", help="Optional label for prepared text input")
     parser.add_argument("--bundle-out", help="Write the normalized decision bundle JSON to this path")
     parser.add_argument("--packet-out", help="Write the decision packet JSON to this path")
+    parser.add_argument(
+        "--gate",
+        action="store_true",
+        help="Gate mode: exit code reflects verdict (0=APPROVE, 1=REJECT, 2=WAIT)",
+    )
+    parser.add_argument(
+        "--min-confidence",
+        type=int,
+        default=60,
+        help="Auto-reject if confidence is below this threshold (default: 60)",
+    )
     return parser.parse_args()
 
 
@@ -311,13 +353,13 @@ def main() -> int:
     args = parse_args()
     if bool(args.input_file) == bool(args.bundle_file):
         print("Use exactly one of --input-file or --bundle-file.", file=sys.stderr)
-        return 2
+        return 1
 
     try:
         if args.input_file:
             if not args.decision_goal:
                 print("--decision-goal is required with --input-file.", file=sys.stderr)
-                return 2
+                return 1
             bundle = build_bundle_from_text(args.decision_goal, args.input_file, args.context_label)
         else:
             bundle = build_bundle_from_json(args.decision_goal, args.bundle_file)
@@ -326,6 +368,7 @@ def main() -> int:
 
         packet, raw_content, resp_dict = run_inference(bundle)
         packet = normalize_packet(packet)
+        packet = apply_confidence_gate(packet, args.min_confidence)
         output_hash = sha256_text(raw_content)
 
         attestation = resp_dict.get("attestation", {}) or {}
@@ -349,7 +392,33 @@ def main() -> int:
         }
         maybe_write_json(args.packet_out, artifact)
 
+        # Append audit record
+        audit_record = {
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "bundle_hash": bundle["bundle_hash"],
+            "output_hash": output_hash,
+            "tee_nonce": nonce,
+            "tee_verified": verified,
+            "verdict": packet["verdict"],
+            "confidence": packet["confidence"],
+            "decision_type": packet["decision_type"],
+            "target": packet["target"],
+            "decision_goal": bundle["decision_goal"],
+            "min_confidence_threshold": args.min_confidence,
+            "gate_mode": args.gate,
+        }
+        append_audit_record(audit_record)
+        print(f"\nAudit record appended to {AUDIT_LOG_FILE}")
+
         print_report(bundle, packet, output_hash, nonce, verified, gpu_model, driver_ver)
+
+        if args.gate:
+            verdict = packet["verdict"]
+            exit_code = VERDICT_EXIT_CODES.get(verdict, 1)
+            label = {0: "APPROVED", 1: "REJECTED", 2: "WAIT"}.get(exit_code, "REJECTED")
+            print(f"\n[GATE] Verdict: {verdict} -> exit code {exit_code} ({label})")
+            return exit_code
+
         return 0
     except json.JSONDecodeError as exc:
         print(f"[ERROR] invalid JSON: {exc}", file=sys.stderr)

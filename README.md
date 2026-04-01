@@ -13,6 +13,7 @@ A collection of Permaweb CLI skills for [Claude Code](https://claude.ai/code) an
 | `arweave` | Upload files/sites to Arweave + manage ArNS records | [skills/arweave/SKILL.md](skills/arweave/SKILL.md) |
 | `arback` | Encrypted AR-wallet backup and restore for agent memory | [skills/arback/SKILL.md](skills/arback/SKILL.md) |
 | `monitor` | AO Task Monitor client (summaries, alerts, logs) | [skills/monitor/SKILL.md](skills/monitor/SKILL.md) |
+| `trade-audit` | Mandatory audit gate for trading & transfer decisions via Apus TEE | [skills/trade-audit/SKILL.md](skills/trade-audit/SKILL.md) |
 
 ## Installation
 
@@ -27,6 +28,9 @@ npx skills add https://github.com/permaweb/skills --skill arback
 
 # Install the Monitor skill
 npx skills add https://github.com/permaweb/skills --skill monitor
+
+# Install the Trade-Audit skill
+npx skills add https://github.com/apuslabs/skills --skill trade-audit
 ```
 
 This adds the skill to your project's `.claude/skills/` or `.opencode/skills/` directory.
@@ -71,6 +75,18 @@ use monitor to show logs for ao-token-info
 Requires `AO_MONITOR_KEY` environment variable (see skill docs for setup).
 
 **Full docs:** [skills/monitor/SKILL.md](skills/monitor/SKILL.md)
+
+### Trade-Audit
+
+```
+should I buy into this Polymarket position? https://polymarket.com/event/...
+audit this transfer: send 10 AR to <address>
+review whether to enter this liquidity pool
+```
+
+The agent collects the relevant information, then trade-audit sends it to an Apus TEE for a verified APPROVE / REJECT / WAIT decision.
+
+**Full docs:** [skills/trade-audit/SKILL.md](skills/trade-audit/SKILL.md)
 
 ## Manual CLI Usage
 
@@ -145,7 +161,7 @@ node skills/monitor/index.mjs logs --limit 50
 - Node.js 18+
 - Internet access
 - Arweave wallet (JWK format) for `arweave` and `arback` skills
-- Python 3.9+ and `uv` for `arback` skill (`pip install uv`)
+- Python 3.9+ and `uv` for `arback` and `trade-audit` skills (`pip install uv`)
 - `AO_MONITOR_KEY` env var for `monitor` skill
 
 ## Development

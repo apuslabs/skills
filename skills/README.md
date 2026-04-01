@@ -13,6 +13,7 @@ A collection of Permaweb CLI skills for [Claude Code](https://claude.ai/code) an
 | `arweave` | Upload files/sites to Arweave + manage ArNS records | [skills/arweave/SKILL.md](skills/arweave/SKILL.md) |
 | `monitor` | AO Task Monitor client (summaries, alerts, logs) | [skills/monitor/SKILL.md](skills/monitor/SKILL.md) |
 | `aoconnect` | Interact with AO processes - spawn, message, read results, monitor | [skills/aoconnect/SKILL.md](skills/aoconnect/SKILL.md) |
+| `trade-audit` | Mandatory audit gate for trading & transfer decisions via Apus TEE | [skills/trade-audit/SKILL.md](skills/trade-audit/SKILL.md) |
 
 ## Installation
 
@@ -27,6 +28,9 @@ npx skills add https://github.com/permaweb/skills --skill monitor
 
 # Install the AO Connect skill
 npx skills add https://github.com/permaweb/skills --skill aoconnect
+
+# Install the Trade-Audit skill
+npx skills add https://github.com/apuslabs/skills --skill trade-audit
 ```
 
 This adds the skill to your project's `.claude/skills/` or `.opencode/skills/` directory.
