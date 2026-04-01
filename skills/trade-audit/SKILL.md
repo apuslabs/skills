@@ -24,6 +24,8 @@ Takes agent-prepared decision material and sends it to the Apus deterministic in
 
 Every run is logged to `~/.trade-audit/audit.jsonl`.
 
+**No wallet or API key required.** This skill only reads public data and calls the Apus inference API. It does not execute any transactions.
+
 Important boundary:
 
 The script is at `{baseDir}/analyze.py`.
@@ -68,6 +70,51 @@ Collected facts:
 - Observation:
   - 55,000 is the strongest downside threshold shown in the collected page notes.
 ```
+
+## Common data sources (no auth required)
+
+When preparing decision material, prefer public APIs over scraping JS-rendered pages.
+
+### Polymarket
+
+Use the CLOB API to get market data — no wallet or login needed:
+
+```bash
+# Get market info by condition ID or slug
+curl -s "https://clob.polymarket.com/markets" | python3 -c "
+import sys, json
+for m in json.load(sys.stdin):
+    if 'KEYWORD' in m.get('question','').lower():
+        print(json.dumps({'question': m['question'], 'tokens': m['tokens'], 'end_date': m.get('end_date_iso')}, indent=2))
+"
+
+# Get a specific market by condition_id
+curl -s "https://clob.polymarket.com/markets/<condition_id>"
+```
+
+Key fields to extract: `question`, `tokens[].outcome` (YES/NO), `tokens[].price`, `end_date_iso`, `description` (resolution rules).
+
+### Crypto prices
+
+```bash
+# CoinGecko — free, no API key
+curl -s "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd"
+
+# Binance public ticker
+curl -s "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT"
+```
+
+### On-chain data
+
+```bash
+# Arweave transaction
+curl -s "https://arweave.net/tx/<txid>"
+
+# AO process state (via aoconnect skill if installed, or direct)
+curl -s "https://cu.ao-testnet.xyz/dry-run?process-id=<pid>" -d '{"Tags":[{"name":"Action","value":"Info"}]}'
+```
+
+The agent should fetch data from these APIs, extract the core numbers, and organize them into the decision material template. Do not pass raw API responses directly — distill to key facts first.
 
 ## Step 2 — Run the audit
 
@@ -115,6 +162,18 @@ pip install openai -q && python3 {baseDir}/analyze.py --input-file /tmp/prepared
 ```
 
 Print the full terminal output to the user exactly as it appears.
+
+After the audit completes, the agent MUST include these TEE attestation fields in the response to the user:
+
+```
+Bundle Hash : <hash of the input material>
+Output Hash : <hash of the decision packet>
+TEE Nonce   : <hardware attestation nonce>
+TEE Verified: <true/false>
+GPU Model   : <e.g. NVIDIA H100>
+```
+
+These fields prove the decision was made inside a Trusted Execution Environment. Omitting them defeats the purpose of using this skill. Always show them alongside the verdict summary.
 
 ## Step 3 — Integration pattern for other skills
 
